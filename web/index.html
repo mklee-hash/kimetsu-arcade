@@ -219,9 +219,14 @@
     color: var(--paper);
   }
   .ladder li small { font-size: 11px; color: var(--paper-dim); }
-  .ladder li.hashira { border-color: var(--blood); background: var(--blood); color: var(--paper); }
-  .ladder li.hashira small { color: var(--paper); }
+  .ladder li.hashira { border-color: var(--dawn); color: var(--dawn); }
+  /* The viewer's own best rank, read from saved game records. */
+  .ladder li.mine { border-color: var(--blood); background: var(--blood); color: var(--paper); box-shadow: 0 0 14px rgba(216, 52, 63, 0.6); }
+  .ladder li.mine small { color: var(--paper); }
   .ranks p { margin: 12px 0 0; max-width: 40em; }
+  .myrank { color: var(--paper); font-size: 15px; }
+  .myrank b { font-weight: 400; color: var(--dawn); font-size: 20px; }
+  .meta .mine-tag b { color: var(--blood); }
 
   @media (prefers-reduced-motion: reduce) {
     h1::after { animation: none; transform: rotate(-8deg) scaleX(1); }
@@ -283,14 +288,48 @@
 
   <section class="ranks" aria-labelledby="ranks-title">
     <h3 id="ranks-title">귀살대 계급</h3>
+    <p class="myrank" id="myRank" style="margin:0 0 10px">아직 기록이 없습니다. 모든 대원은 癸에서 시작합니다.</p>
     <ol class="ladder">
       <li>癸<small>계</small></li><li>壬<small>임</small></li><li>辛<small>신</small></li><li>庚<small>경</small></li><li>己<small>기</small></li>
       <li>戊<small>무</small></li><li>丁<small>정</small></li><li>丙<small>병</small></li><li>乙<small>을</small></li><li>甲<small>갑</small></li><li class="hashira">柱<small>주</small></li>
     </ol>
-    <p>모든 게임은 결과 화면에서 이 열한 단계 중 하나를 줍니다. 가장 낮은 계급은 癸이고, 甲 위의 柱(주)는 귀살대 최고위 검객 아홉 명에게만 허락된 자리입니다. 기록은 이 브라우저에만 저장됩니다.</p>
+    <p>모든 게임은 결과 화면에서 이 열한 단계 중 하나를 줍니다. 빨간 칸이 지금까지 네 게임에서 얻은 내 최고 계급입니다. 가장 낮은 계급은 癸이고, 甲 위의 柱(주)는 귀살대 최고위 검객 아홉 명에게만 허락된 자리입니다. 기록은 이 브라우저에만 저장됩니다.</p>
   </section>
 </main>
 
+<script>
+// Highlight the viewer's best rank across the four games, from each game's saved record.
+(() => {
+  const RK = ['癸', '壬', '辛', '庚', '己', '戊', '丁', '丙', '乙', '甲', '柱'];
+  const READ = ['계', '임', '신', '경', '기', '무', '정', '병', '을', '갑', '주'];
+  const get = k => { try { const v = localStorage.getItem('kimetsu-arcade:' + k); return v == null ? null : JSON.parse(v); } catch (e) { return null; } };
+  const byScore = (s, cuts) => { let r = -1; if (typeof s === 'number' && s > 0) cuts.forEach((c, i) => { if (s >= c) r = i; }); return r; };
+  const best = {};
+  // 새벽의 일섬 saves only the score; cutoffs match slash.html.
+  best['slash.html'] = byScore(get('slash:best'), [0, 800, 2000, 3500, 5500, 8000, 11000, 14500, 18500, 23000, 32000]);
+  const sv = get('survivors:best');
+  best['survivors.html'] = sv ? byScore(sv.score, [0, 400, 1000, 1800, 2800, 4000, 5000, 6200, 8200, 10500, 13500]) : -1;
+  const rh = get('rhythm:best'); let r = -1;
+  if (rh && typeof rh === 'object') for (const k in rh) if (rh[k]) r = Math.max(r, RK.indexOf(rh[k].rank));
+  best['rhythm.html'] = r;
+  const cd = get('cards:best');
+  best['cards.html'] = cd ? RK.indexOf(cd.rank) : -1;
+
+  let top = -1, topGame = '';
+  document.querySelectorAll('.game').forEach(a => {
+    const i = best[a.getAttribute('href')];
+    if (i == null || i < 0) return;
+    const s = document.createElement('span'); s.className = 'mine-tag';
+    s.innerHTML = '내 계급 <b>' + RK[i] + '</b>';
+    a.querySelector('.meta').appendChild(s);
+    if (i > top) { top = i; topGame = a.querySelector('h2').textContent; }
+  });
+  if (top < 0) return;
+  const li = document.querySelectorAll('.ladder li')[top];
+  if (li) { li.classList.add('mine'); li.setAttribute('aria-current', 'true'); }
+  document.getElementById('myRank').innerHTML = '내 최고 계급 <b>' + RK[top] + '</b> (' + READ[top] + ') · ' + topGame;
+})();
+</script>
 <script>
 (() => {
   const cv = document.getElementById('sky');
