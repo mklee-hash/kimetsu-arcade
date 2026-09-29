@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>귀살 아케이드</title>
+<meta name="description" content="다이쇼 시대의 밤, 혈귀를 베는 네 가지 브라우저 게임 모음.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --night: #0b0e22;
+    --ink: #07081a;
+    --paper: #efe6d2;
+    --paper-dim: #b9b2a3;
+    --blood: #d8343f;
+    --wisteria: #a58bdc;
+    --dawn: #f2b24a;
+    --water: #4fb3ff;
+    --flame: #ff7a2f;
+    --thunder: #ffe14d;
+    --beast: #9fb4c8;
+    --line: rgba(239, 230, 210, 0.16);
+    --display: "Nanum Brush Script", "Gungsuh", cursive;
+    --body: "Gowun Dodum", system-ui, -apple-system, "Malgun Gothic", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--night); min-height: 100%; }
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--night);
+    color: var(--paper);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  #sky {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+  }
+  main {
+    position: relative;
+    max-width: 980px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 48px 64px;
+  }
+  header { max-width: 640px; }
+  .eyebrow {
+    margin: 0 0 6px;
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    color: var(--wisteria);
+  }
+  h1 {
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(72px, 17vw, 132px);
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    text-shadow: 0 0 36px rgba(239, 230, 210, 0.18);
+  }
+  /* A single red blade cut drawn across the title on load. */
+  h1::after {
+    content: "";
+    position: absolute;
+    left: -4%;
+    top: 52%;
+    width: 108%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--blood) 12%, #ff8a8a 50%, var(--blood) 88%, transparent);
+    transform: rotate(-8deg) scaleX(0);
+    transform-origin: left center;
+    animation: cut 0.5s 0.35s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
+    box-shadow: 0 0 14px rgba(216, 52, 63, 0.8);
+  }
+  @keyframes cut { to { transform: rotate(-8deg) scaleX(1); } }
+  .lede {
+    margin: 18px 0 0;
+    max-width: 34em;
+    color: var(--paper-dim);
+    font-size: 16px;
+  }
+
+  .games {
+    list-style: none;
+    margin: 44px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+  @media (max-width: 680px) { .games { grid-template-columns: 1fr; } }
+
+  /* Each entry is a hanging paper talisman: string on top, washi body, red seal. */
+  .game {
+    --c: var(--water);
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 6px;
+    padding: 22px 22px 20px;
+    color: var(--ink);
+    text-decoration: none;
+    background:
+      repeating-linear-gradient(0deg, rgba(120, 96, 60, 0.05) 0 2px, transparent 2px 5px),
+      linear-gradient(170deg, #f3ead6, #e2d5b9);
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    transition: transform 0.18s ease, filter 0.18s ease;
+  }
+  .game::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 7px;
+    background: var(--c);
+  }
+  .game:hover { transform: translateY(-3px) rotate(-0.4deg); filter: brightness(1.05); }
+  .game:focus-visible { outline: 3px solid var(--dawn); outline-offset: 4px; }
+  .game[data-c="flame"] { --c: var(--flame); }
+  .game[data-c="thunder"] { --c: var(--thunder); }
+  .game[data-c="beast"] { --c: var(--beast); }
+  .game[data-c="wisteria"] { --c: var(--wisteria); }
+  .genre {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: #6b5a44;
+  }
+  .game h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 46px;
+    line-height: 1;
+    color: #1a1420;
+    text-wrap: balance;
+  }
+  .game p { margin: 4px 0 0; color: #3b3040; }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(59, 48, 64, 0.3);
+    font-size: 13px;
+    color: #5a4c5e;
+  }
+  .meta b { font-weight: 400; color: #1a1420; }
+  .seal {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--blood);
+    border-radius: 50%;
+    color: var(--blood);
+    font-family: var(--display);
+    font-size: 26px;
+    line-height: 1;
+    transform: rotate(8deg);
+    opacity: 0.85;
+  }
+  .play {
+    display: inline-block;
+    margin-top: 16px;
+    justify-self: start;
+    padding: 9px 18px;
+    background: var(--blood);
+    color: var(--paper);
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+
+  .ranks {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--paper-dim);
+    font-size: 14px;
+  }
+  .ranks h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    color: var(--paper);
+  }
+  .ladder {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ladder li {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    padding: 6px 0 4px;
+    border: 1px solid var(--line);
+    font-size: 20px;
+    line-height: 1.1;
+    color: var(--paper);
+  }
+  .ladder li small { font-size: 11px; color: var(--paper-dim); }
+  .ladder li.hashira { border-color: var(--blood); background: var(--blood); color: var(--paper); }
+  .ladder li.hashira small { color: var(--paper); }
+  .ranks p { margin: 12px 0 0; max-width: 40em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    h1::after { animation: none; transform: rotate(-8deg) scaleX(1); }
+    .game { transition: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<main>
+  <header>
+    <p class="eyebrow">다이쇼 시대 · 달 밝은 밤</p>
+    <h1>귀살 아케이드</h1>
+    <p class="lede">해가 뜨기 전까지 혈귀를 베는 네 가지 게임입니다. 호흡을 골라 싸우고, 기록에 따라 癸부터 甲, 그리고 최고위 柱(주)까지 계급을 받습니다. PC와 휴대폰 모두 설치 없이 바로 플레이할 수 있습니다.</p>
+  </header>
+
+  <ul class="games">
+    <li>
+      <a class="game" href="slash.html" data-c="flame">
+        <span class="genre">스와이프 액션</span>
+        <h2>새벽의 일섬</h2>
+        <p>날아오르는 혈귀를 손가락이나 마우스로 그어 벱니다. 사람은 베지 말고, 두목은 목을 노리세요.</p>
+        <div class="meta"><span>조작 <b>드래그</b></span><span>한 판 <b>약 5분</b></span><span>휴대폰 <b>추천</b></span></div>
+        <span class="seal" aria-hidden="true">斬</span>
+        <span class="play">출진하기</span>
+      </a>
+    </li>
+    <li>
+      <a class="game" href="survivors.html" data-c="water">
+        <span class="genre">생존 로그라이트</span>
+        <h2>무한의 밤</h2>
+        <p>몰려드는 혈귀 무리 속에서 자동으로 싸우며 살아남습니다. 레벨이 오를 때마다 호흡의 형을 골라 강해집니다.</p>
+        <div class="meta"><span>조작 <b>WASD · 드래그</b></span><span>한 판 <b>6분 / 12분</b></span></div>
+        <span class="seal" aria-hidden="true">夜</span>
+        <span class="play">출진하기</span>
+      </a>
+    </li>
+    <li>
+      <a class="game" href="rhythm.html" data-c="thunder">
+        <span class="genre">리듬 액션</span>
+        <h2>호흡의 박자</h2>
+        <p>북과 샤미센 박자에 맞춰 노트를 쳐서 혈귀를 벱니다. 정확하게 칠수록 강한 형이 나갑니다.</p>
+        <div class="meta"><span>조작 <b>D F J K · 터치</b></span><span>곡 <b>3곡 × 3난이도</b></span><span>소리 <b>필요</b></span></div>
+        <span class="seal" aria-hidden="true">拍</span>
+        <span class="play">출진하기</span>
+      </a>
+    </li>
+    <li>
+      <a class="game" href="cards.html" data-c="wisteria">
+        <span class="genre">덱빌딩 카드 배틀</span>
+        <h2>귀살의 부적</h2>
+        <p>부적 카드로 덱을 만들며 세 번의 밤을 넘깁니다. 적의 다음 행동을 읽고 호흡 3칸으로 수를 짭니다.</p>
+        <div class="meta"><span>조작 <b>클릭 · 탭</b></span><span>한 판 <b>30분 이상</b></span><span>이어하기 <b>가능</b></span></div>
+        <span class="seal" aria-hidden="true">符</span>
+        <span class="play">출진하기</span>
+      </a>
+    </li>
+  </ul>
+
+  <section class="ranks" aria-labelledby="ranks-title">
+    <h3 id="ranks-title">귀살대 계급</h3>
+    <ol class="ladder">
+      <li>癸<small>계</small></li><li>壬<small>임</small></li><li>辛<small>신</small></li><li>庚<small>경</small></li><li>己<small>기</small></li>
+      <li>戊<small>무</small></li><li>丁<small>정</small></li><li>丙<small>병</small></li><li>乙<small>을</small></li><li>甲<small>갑</small></li><li class="hashira">柱<small>주</small></li>
+    </ol>
+    <p>모든 게임은 결과 화면에서 이 열한 단계 중 하나를 줍니다. 가장 낮은 계급은 癸이고, 甲 위의 柱(주)는 귀살대 최고위 검객 아홉 명에게만 허락된 자리입니다. 기록은 이 브라우저에만 저장됩니다.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const cv = document.getElementById('sky');
+  const ctx = cv.getContext('2d');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, petals = [], ridge = [];
+
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ridge = [];
+    const p1 = Math.random() * 6, p2 = Math.random() * 6;
+    for (let x = 0; x <= W + 40; x += 40) {
+      ridge.push(H * 0.8 - Math.sin(x / 260 + p1) * H * 0.05 - Math.sin(x / 90 + p2) * H * 0.015);
+    }
+    const n = Math.round(Math.min(60, W / 22));
+    petals = Array.from({ length: n }, () => newPetal(true));
+    if (reduce) draw(0);
+  }
+
+  function newPetal(anywhere) {
+    return {
+      x: Math.random() * W * 1.2,
+      y: anywhere ? Math.random() * H : -10,
+      s: 2 + Math.random() * 3,
+      vx: -10 - Math.random() * 18,
+      vy: 14 + Math.random() * 22,
+      r: Math.random() * 6,
+      vr: (Math.random() - 0.5) * 2,
+      c: Math.random() < 0.5 ? '#a58bdc' : '#c9b3f0'
+    };
+  }
+
+  function draw(dt) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#080a1c');
+    g.addColorStop(0.7, '#141436');
+    g.addColorStop(1, '#231a3c');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    const R = Math.max(40, Math.min(W, H) * 0.1);
+    const mx = W * 0.82, my = H * 0.2;
+    const glow = ctx.createRadialGradient(mx, my, R * 0.6, mx, my, R * 3.2);
+    glow.addColorStop(0, 'rgba(239,230,210,0.22)');
+    glow.addColorStop(1, 'rgba(239,230,210,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#efe6d2';
+    ctx.beginPath(); ctx.arc(mx, my, R, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#0d0e26';
+    ctx.beginPath(); ctx.moveTo(0, H);
+    ridge.forEach((y, i) => ctx.lineTo(i * 40, y));
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+
+    for (const p of petals) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      if (p.y > H + 10 || p.x < -10) Object.assign(p, newPetal(false));
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.ellipse(0, 0, p.s, p.s * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    draw(dt);
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  if (!reduce) requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
