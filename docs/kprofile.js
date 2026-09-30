@@ -137,13 +137,13 @@
     runner: {
       values: function (r) {
         return {
-          extraHearts: (r >= 2 ? 1 : 0) + (r >= 5 ? 1 : 0) + (r >= 8 ? 1 : 0),  // on top of 3
+          extraHearts: (r >= 2 ? 1 : 0) + (r >= 5 ? 1 : 0) + (r >= 8 ? 1 : 0),  // on top of 5
           airMul: 1 + 0.02 * r                                                // jump airtime
         };
       },
       text: function (p) {
         var o = [];
-        if (p.extraHearts) o.push('하트 +' + p.extraHearts + ' (' + (3 + p.extraHearts) + '개)');
+        if (p.extraHearts) o.push('하트 +' + p.extraHearts + ' (' + (5 + p.extraHearts) + '개)');
         if (p.airMul > 1) o.push('점프 시간 +' + pct(p.airMul - 1) + '%');
         return o;
       }

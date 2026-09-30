@@ -214,7 +214,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
       <li>혈귀가 오면 <b>베기!</b> 화면 오른쪽 누르기 · <span class="kbd">J</span> (점프로 넘어도 돼요)</li>
       <li>반짝이는 <b>질풍 부적</b>을 먹으면 앞으로 휙! 잠깐 동안 모두 부수고 먹으며 달려요.</li>
       <li>날아오는 박쥐 혈귀는 <b>숙이기!</b> 가운데 아래 버튼 · <span class="kbd">↓</span> <span class="kbd">S</span></li>
-      <li>하늘의 등꽃과 주먹밥은 점프해서 모아요. 주먹밥은 하트를 채워 줘요. 하트가 다 떨어져도 다시 일어나 끝까지 달려요!</li>
+      <li>하늘의 등꽃과 주먹밥은 점프해서 모아요. 주먹밥은 하트를 채워 줘요. 하트는 5개로 시작해요.</li>
     </ul>
     <div class="who" id="title-who" hidden><span id="title-badge"></span><a href="index.html#profiles">대원 바꾸기</a></div>
     <p class="best-line" id="title-best"></p>
@@ -329,6 +329,7 @@ function PFX(){return kpCall(k=>k.prefix(),'kimetsu-arcade:')+'runner:';}
 function lsGet(k,d){try{const v=localStorage.getItem(PFX()+k);if(v==null)return d;const o=JSON.parse(v);return o==null?d:o;}catch(e){return d;}}
 function lsSet(k,v){try{localStorage.setItem(PFX()+k,JSON.stringify(v));}catch(e){}}
 /* 계급 능력 (한 판마다 한 번 읽음) */
+const BASE_HEARTS=5; // 기본 하트 (계급 능력으로 +1~+3)
 function runnerPerks(){
   const p=kpCall(k=>k.perks('runner'),{});
   const eh=Math.round(clamp(+p.extraHearts||0,0,3)),am=+p.airMul;
@@ -430,7 +431,7 @@ const RR=['계','임','신','경','기','무','정','병','을','갑','주'];
 const RCUT=[0,.12,.22,.32,.42,.52,.62,.71,.8,.88,.95];
 const RANK_SHIFT={easy:2,normal:1,hard:0};
 function rankIdx(ratio,diff){let r=0;RCUT.forEach((c,i)=>{if(ratio>=c)r=i;});return Math.max(0,r-(RANK_SHIFT[diff]||0));}
-const JW={jumpEarly:.4,jumpLate:.24,slashEarly:.35,slashLate:.26,collect:.3,perfect:.075,good:.14};
+const JW={jumpEarly:.4,jumpLate:.24,slashEarly:.35,slashLate:.26,collect:.3,perfect:.12,good:.26};
 const BASE={perfect:100,good:70,ok:40};
 const JTXT={perfect:'완벽!',good:'좋아!',ok:'아슬아슬!'};
 const JCOL={perfect:'#f2b24a',good:'#c9b6f2',ok:'#efe6d2'};
@@ -1183,7 +1184,7 @@ function startGame(songIdx){
   const events=comp.ev.slice();
   events.unshift({t:-3*spb,i:'tick',v:.7},{t:-2*spb,i:'tick',v:.7},{t:-spb,i:'tick',v:1});
   lastCfg={song:songIdx};
-  const ch=charById(settings.char),pk=runnerPerks(),maxH=3+pk.extraHearts;
+  const ch=charById(settings.char),pk=runnerPerks(),maxH=BASE_HEARTS+pk.extraHearts;
   play={song:song,comp:comp,spb:spb,items:items,events:events,evIdx:0,bus:newBus(),
     songT0:actx.currentTime+1.3+3*spb,gtNow:-9,wb:-9,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
     char:ch,practice:settings.practice,hearts:maxH,maxHearts:maxH,invuln:0,score:0,scoreShown:0,combo:0,maxCombo:0,comboPop:0,
@@ -1220,6 +1221,8 @@ function heroAirH(){
 function itemX(it){return hitX+(it.b-play.wb)*ppb;}
 function itemY(it){return it.kind==='flyer'?groundY-figH*.82:it.air?groundY-figH*1.32:groundY;}
 function gradeOf(ad){return ad<=JW.perfect?'perfect':ad<=JW.good?'good':'ok';}
+// 제대로 넘거나 벤 경우(칼 범위 · 공중에서 넘기)는 최소 '좋아!'
+function atLeastGood(g){return g==='ok'?'good':g;}
 function canAct(){const P=play;return P&&!P.paused&&P.phase==='play';}
 /* 숙이기: 누르고 있는 동안(키 · 버튼) + 짧게 눌러도 0.5초는 숙인다. 공중에서는 숙이지 않는다 */
 function crouching(){const P=play;return !!P&&(P.crouchHeld||vt<P.crouchUntil)&&heroAirH()===0;}
@@ -1326,11 +1329,8 @@ function missItem(it){
   if(!reduceMotion)shakeA=Math.max(shakeA,7);flashA=.25;flashCol='#d8343f';
   spawn(heroX+figH*.2,groundY-figH*.5,8,{sp:120,col:['#ffffff','#ff8fab'],life:.4,sz:figH*.04,k:'star',drag:3});
   if(!P.practice&&vt>=P.invuln){
-    P.hearts--;P.invuln=vt+1.8;P.heartLost=vt;
-    if(P.hearts<=0){ // 쓰러져도 다시 일어나 끝까지 달린다 (게임 오버 없음)
-      P.revives++;P.hearts=Math.min(2,P.maxHearts);P.invuln=vt+3;P.heartGain=vt;
-      callout={t0:vt,dur:1.6,big:'힘내!',sub:'다시 일어나서 끝까지 달려요!',col:'#ff8fab'};
-    }
+    P.hearts--;P.invuln=vt+2.2;P.heartLost=vt;
+    if(P.hearts<=0)startFail();
   }
 }
 function startFail(){
@@ -1384,10 +1384,10 @@ function updateGame(dt){
         if(d>JW.collect)it.state=2;
       }else if(it.act==='jump'&&d>=-.06&&heroAirH()>figH*.12){
         // 장애물이 지나가는 순간 공중에 떠 있으면 넘은 것으로 친다 (일찍 뛰어도 OK). 판정은 누른 시각 기준
-        hitItem(it,gradeOf(Math.abs(P.jumpGt-it.t)));
+        hitItem(it,atLeastGood(gradeOf(Math.abs(P.jumpGt-it.t))));
       }else if(it.act==='slash'&&vt<P.slashZoneUntil&&d>=-.3){
         // 칼을 휘두른 직후 0.3초 동안은 칼끝 앞에 들어온 혈귀를 벤다 (조금 일찍 눌러도 OK)
-        hitItem(it,gradeOf(Math.abs(P.slashGt-it.t)));
+        hitItem(it,atLeastGood(gradeOf(Math.abs(P.slashGt-it.t))));
       }else if(it.act==='slash'&&it.kind==='flyer'&&d>=-.08&&heroAirH()>figH*.12){
         // 점프하다 박쥐 혈귀와 만나면 공중에서 자동으로 벤다
         P.slashT=vt;arcs.push({t0:vt,x:heroX+figH*.25,y:groundY-heroAirH()-figH*.55,col:P.char.color});sfx('slash');

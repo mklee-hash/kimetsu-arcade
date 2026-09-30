@@ -239,16 +239,19 @@
       if (!LOD) { ell(ctx, lx + side * EW * 0.3, EH * 0.52, EW * 0.11, EH * 0.1); ctx.fill(); }
       var sleepy = c.sleepy && expr === 'normal';
       if (sleepy) {
-        // heavy, half-closed upper lid (zenitsu's usual sleepy look)
-        ctx.fillStyle = c.skin || SKIN; ctx.fillRect(-EW * 1.6, -EH * 1.7, EW * 3.2, EH * 1.62);
-        ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(-EW * 1.6, -EH * 0.14, EW * 3.2, EH * 0.2);
+        // droopy half-closed upper lid that sags in the middle (soft, sleepy — not a glare)
+        ctx.fillStyle = c.skin || SKIN;
+        ctx.beginPath(); ctx.moveTo(-EW * 1.6, -EH * 1.8); ctx.lineTo(EW * 1.6, -EH * 1.8); ctx.lineTo(EW * 1.6, -EH * 0.05);
+        ctx.lineTo(EW * 1.1, EH * 0.05); ctx.quadraticCurveTo(0, -EH * 0.35, -EW * 1.1, EH * 0.05);
+        ctx.lineTo(-EW * 1.6, EH * 0.05); ctx.closePath(); ctx.fill();
+        ell(ctx, lx - side * EW * 0.25, EH * 0.3, EW * 0.18, EH * 0.16); ctx.fillStyle = '#fff'; ctx.fill();   // sparkle below the lid
       }
       ctx.restore();
       if (sleepy) {
-        ctx.save(); ctx.beginPath(); ctx.rect(-EW * 2, -EH * 0.08, EW * 4, EH * 3); ctx.clip();
+        ctx.save(); ctx.beginPath(); ctx.rect(-EW * 2, 0, EW * 4, EH * 3); ctx.clip();
         eyeShape(ctx, sl); stroke(ctx, 0.8); ctx.restore();
-        ctx.beginPath(); ctx.moveTo(-EW * 1.04, -EH * 0.02); ctx.quadraticCurveTo(0, -EH * 0.2, EW * 1.08, -EH * 0.1);
-        stroke(ctx, LOD ? 1.8 : 2.4);
+        ctx.beginPath(); ctx.moveTo(-EW * 1.08, EH * 0.05); ctx.quadraticCurveTo(0, -EH * 0.35, EW * 1.08, EH * 0.05);
+        stroke(ctx, LOD ? 1.5 : 1.7);
         ctx.restore();
         return;
       }
@@ -266,6 +269,7 @@
     if (expr === 'fierce') { inner = 0.13; outer = -0.07; }
     else if (expr === 'hurt') { inner = -0.1; outer = 0.06; }
     else if (expr === 'smile') { inner = -0.05; outer = -0.03; }
+    else if (c.sleepy) { inner = -0.09; outer = 0.03; }   // relaxed, slightly raised (sleepy, not cross)
     for (var side = -1; side <= 1; side += 2) {
       ctx.save(); ctx.translate(side * 0.43 + fx, 0.2); ctx.scale(side, 1);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -281,11 +285,13 @@
     };
   }
   function drawMouth(ctx, c, expr, fx) {
-    var m = expr === 'normal' ? (c.mouth || 'line') : expr;
+    var m = expr === 'normal' ? (c.sleepy ? 'sleepy' : (c.mouth || 'line')) : expr;
     var x = fx * 0.8;
     ctx.save(); ctx.translate(x, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (m === 'line') {
       ctx.beginPath(); ctx.moveTo(-0.11, 0.67); ctx.quadraticCurveTo(0, 0.73, 0.11, 0.67); stroke(ctx, 1.2);
+    } else if (m === 'sleepy') {
+      ell(ctx, 0.02, 0.7, 0.07, 0.06); ctx.fillStyle = '#7a2230'; ctx.fill(); stroke(ctx, 0.9);
     } else if (m === 'soft') {
       // gentle closed-mouth smile (shinobu)
       ctx.beginPath(); ctx.moveTo(-0.15, 0.64); ctx.quadraticCurveTo(0, 0.76, 0.15, 0.64); stroke(ctx, 1.2);
@@ -348,7 +354,7 @@
     ctx.translate(0.02, 0.1); c.pathFront(ctx); ctx.fillStyle = c.skinSh || SKIN_SH; ctx.fill();
     ctx.restore();
     facePath(ctx); stroke(ctx, 1);
-    if (expr === 'smile' || c.blush) {
+    if (expr === 'smile' || c.blush || (c.sleepy && expr === 'normal')) {
       ctx.fillStyle = 'rgba(255,110,120,0.32)';
       ell(ctx, -0.6 + fx, 0.52, 0.17, 0.08); ctx.fill();
       ell(ctx, 0.6 + fx, 0.52, 0.17, 0.08); ctx.fill();
@@ -358,6 +364,12 @@
     drawEye(ctx, c, 1, expr, fx);
     if (!LOD) { ctx.beginPath(); ctx.moveTo(0.02 + fx, 0.42); ctx.lineTo(-0.02 + fx, 0.47); ctx.lineCap = 'round'; ctx.lineWidth = LW * 0.9; ctx.strokeStyle = '#c98a70'; ctx.stroke(); }
     if (!c.noMouth) drawMouth(ctx, c, expr, fx);
+    if (c.sleepy && expr === 'normal' && !LOD) {
+      var bx = 0.15 + fx, by = 0.55;   // snot bubble hanging from the nostril
+      circ(ctx, bx, by, 0.12); ctx.fillStyle = 'rgba(190,230,255,0.55)'; ctx.fill();
+      ctx.lineWidth = LW * 0.9; ctx.strokeStyle = 'rgba(120,180,230,0.9)'; ctx.stroke();
+      circ(ctx, bx - 0.035, by - 0.04, 0.035); ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fill();
+    }
     c.pathFront(ctx); ctx.fillStyle = gf; ctx.fill();
     c.pathFront(ctx, true); stroke(ctx, 1);
     if (c.hairDetail && !LOD) c.hairDetail(ctx);
