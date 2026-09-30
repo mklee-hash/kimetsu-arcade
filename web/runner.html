@@ -168,6 +168,25 @@ input[type=range]:focus-visible{outline:2px solid var(--dawn);outline-offset:2px
 .res-best .new{color:var(--ink);background:var(--dawn);padding:1px 8px;margin-left:6px;clip-path:var(--cut-s)}
 
 @media (prefers-reduced-motion:reduce){.screen.active{animation:none}.btn,.song,.ccard{transition:none}.stars span.on{animation:none}}
+/* 대원 프로필 · 계급 능력 */
+.who{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;font-size:15px}
+.who[hidden]{display:none}
+.kprofile-badge{display:inline-block;padding:4px 12px;background:rgba(7,8,26,.74);color:var(--paper);clip-path:var(--cut-s);box-shadow:inset 0 0 0 1px rgba(242,178,74,.45)}
+.who a{color:var(--wisteria);font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+.who a:focus-visible{outline:2px solid var(--dawn);outline-offset:2px}
+.perk-box{background:rgba(7,8,26,.74);clip-path:var(--cut-s);padding:10px 14px;box-shadow:inset 0 0 0 1px rgba(242,178,74,.3);font-size:14px;display:flex;flex-direction:column;gap:4px}
+.perk-box[hidden]{display:none}
+.perk-box h3{font-size:15px;color:var(--dawn);margin:0}
+.perk-box h3 b{font-family:var(--hanja);font-weight:400;font-size:20px;line-height:1}
+.perk-box ul{margin:0;padding:0 0 0 18px}
+.perk-box .next{color:var(--paper-dim);font-size:13px}
+.rank-up{text-align:center;padding:12px 14px;background:linear-gradient(180deg,rgba(242,178,74,.2),rgba(7,8,26,.8));clip-path:var(--cut);box-shadow:inset 0 0 0 2px var(--dawn);animation:rankPop .7s cubic-bezier(.2,1.6,.4,1) both .3s}
+.rank-up[hidden]{display:none}
+.rank-up .ru-head{font-family:var(--brush);font-size:clamp(40px,11vw,56px);line-height:1.1;color:var(--dawn);text-shadow:0 0 22px rgba(242,178,74,.6)}
+.rank-up .ru-head .hz{font-family:var(--hanja)}
+.rank-up .ru-perk{font-size:14px;color:var(--paper);margin-top:4px}
+@keyframes rankPop{0%{transform:scale(.4);opacity:0}100%{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.rank-up{animation:none}}
 a.arcade-back{display:inline-flex!important;align-items:center;gap:6px;font-family:"Gowun Dodum",system-ui,sans-serif;font-size:15px!important;font-weight:700;line-height:1.2;
   color:#07081a!important;background:#f2b24a!important;padding:10px 16px 10px 12px!important;border:0!important;text-decoration:none!important;z-index:30;
   clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)!important;box-shadow:none!important;filter:drop-shadow(0 2px 10px rgba(242,178,74,.45))}
@@ -195,6 +214,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
       <li>혈귀가 오면 <b>베기!</b> 화면 오른쪽 누르기 · <span class="kbd">J</span></li>
       <li>하늘의 등꽃과 주먹밥은 점프해서 모아요. 주먹밥은 하트를 채워 줘요.</li>
     </ul>
+    <div class="who" id="title-who" hidden><span id="title-badge"></span><a href="index.html#profiles">대원 바꾸기</a></div>
     <p class="best-line" id="title-best"></p>
     <div class="btn-row">
       <button class="btn primary" id="btn-start" data-autofocus>시작하기</button>
@@ -216,6 +236,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
 <section class="screen" id="scr-song">
   <div class="wrap">
     <div class="bar"><button class="btn small" id="song-back">← 대원 고르기</button><h2 class="brush">어디를 달릴까?</h2></div>
+    <div class="perk-box" id="perk-box" hidden></div>
     <div class="songs" id="song-list" role="group" aria-label="노래와 무대"></div>
     <label class="check"><input type="checkbox" id="opt-practice"><span>연습 모드 <small>하트가 줄지 않아요. 끝까지 마음껏 달려요.</small></span></label>
     <details class="panel" id="opt-panel">
@@ -259,6 +280,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
     <h2 class="brush res-head" id="res-head"></h2>
     <div class="stars" id="res-stars" role="img" aria-label="별"><span style="--i:0">★</span><span style="--i:1">★</span><span style="--i:2">★</span></div>
     <p class="hint" id="res-sub" style="text-align:center"></p>
+    <div class="rank-up" id="res-rankup" role="status" hidden></div>
     <div class="rank-box">
       <span class="rank-char" id="res-rank">癸</span>
       <div><div class="rank-label" id="res-rank-label"></div><span class="tag" id="res-status"></span></div>
@@ -285,6 +307,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
 </section>
 
 <script src="kchars.js"></script>
+<script src="kprofile.js"></script>
 <script>
 (function(){
 'use strict';
@@ -297,9 +320,18 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const lerp=(a,b,t)=>a+(b-a)*t;
 const TAU=Math.PI*2;
 const frac=x=>((x%1)+1)%1;
-const PFX='kimetsu-arcade:runner:';
-function lsGet(k,d){try{const v=localStorage.getItem(PFX+k);if(v==null)return d;const o=JSON.parse(v);return o==null?d:o;}catch(e){return d;}}
-function lsSet(k,v){try{localStorage.setItem(PFX+k,JSON.stringify(v));}catch(e){}}
+/* 대원(프로필)별 저장: KProfile이 있으면 그 접두어, 없으면 예전 접두어. 호출할 때마다 계산 */
+const KP=(typeof window.KProfile==='object'&&window.KProfile)?window.KProfile:null;
+function kpCall(fn,def){if(!KP)return def;try{const v=fn(KP);return v==null?def:v;}catch(e){return def;}}
+function PFX(){return kpCall(k=>k.prefix(),'kimetsu-arcade:')+'runner:';}
+function lsGet(k,d){try{const v=localStorage.getItem(PFX()+k);if(v==null)return d;const o=JSON.parse(v);return o==null?d:o;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(PFX()+k,JSON.stringify(v));}catch(e){}}
+/* 계급 능력 (한 판마다 한 번 읽음) */
+function runnerPerks(){
+  const p=kpCall(k=>k.perks('runner'),{});
+  const eh=Math.round(clamp(+p.extraHearts||0,0,3)),am=+p.airMul;
+  return {extraHearts:eh,airMul:Number.isFinite(am)&&am>0?am:1};
+}
 function rng(seed){let a=seed>>>0;return function(){a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function hexRgb(hex){const n=parseInt(hex.slice(1),16);return [n>>16&255,n>>8&255,n&255];}
 function rgba(hex,a){const c=hexRgb(hex);return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
@@ -405,7 +437,9 @@ const multOf=c=>c>=30?4:c>=20?3:c>=10?2:1;
 
 const DEF={musicVol:.8,sfxVol:.65,muted:false,offset:0,char:CHARS[0].id,song:0,practice:false};
 const settings=Object.assign({},DEF);
-(function(){
+let songBest={};
+function loadStore(){
+  Object.assign(settings,DEF);
   const s=lsGet('settings',{});
   if(s&&typeof s==='object'){
     if(Number.isFinite(+s.musicVol))settings.musicVol=clamp(+s.musicVol,0,1);
@@ -415,10 +449,11 @@ const settings=Object.assign({},DEF);
     if(typeof s.practice==='boolean')settings.practice=s.practice;
     if(typeof s.char==='string'&&CHARS.some(c=>c.id===s.char))settings.char=s.char;
   }
-})();
+  songBest=lsGet('songs',{});
+  if(!songBest||typeof songBest!=='object'||Array.isArray(songBest))songBest={};
+}
+loadStore();
 function saveSettings(){lsSet('settings',settings);}
-let songBest=lsGet('songs',{});
-if(!songBest||typeof songBest!=='object'||Array.isArray(songBest))songBest={};
 
 /* =====================================================================
    3. 작곡 (결정적 생성) · 채보
@@ -1134,11 +1169,11 @@ function startGame(songIdx){
   const events=comp.ev.slice();
   events.unshift({t:-3*spb,i:'tick',v:.7},{t:-2*spb,i:'tick',v:.7},{t:-spb,i:'tick',v:1});
   lastCfg={song:songIdx};
-  const ch=charById(settings.char);
+  const ch=charById(settings.char),pk=runnerPerks(),maxH=3+pk.extraHearts;
   play={song:song,comp:comp,spb:spb,items:items,events:events,evIdx:0,bus:newBus(),
     songT0:actx.currentTime+1.3+3*spb,gtNow:-9,wb:-9,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
-    char:ch,practice:settings.practice,hearts:3,invuln:0,score:0,scoreShown:0,combo:0,maxCombo:0,comboPop:0,
-    counts:{perfect:0,good:0,ok:0,miss:0},collected:0,collectStep:0,jumpT0:-9,jumpGt:-99,air:clamp(spb*1.3,.62,.85),wasAir:false,
+    char:ch,practice:settings.practice,hearts:maxH,maxHearts:maxH,invuln:0,score:0,scoreShown:0,combo:0,maxCombo:0,comboPop:0,
+    counts:{perfect:0,good:0,ok:0,miss:0},collected:0,collectStep:0,jumpT0:-9,jumpGt:-99,air:Math.min(1,clamp(spb*1.3,.62,.85)*pk.airMul),wasAir:false,
     slashT:-9,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9};
   parts=[];pops=[];arcs=[];callout=null;shakeA=0;flashA=0;
   mode='game';
@@ -1230,7 +1265,7 @@ function collect(it,grade){
   const x=itemX(it),y=itemY(it);
   spawn(x,y,12,{sp:140,col:rice?['#fff2c8','#f2b24a','#ffffff']:['#c9b6f2','#e6dcff','#f2b24a'],life:.6,sz:figH*.045,k:'star',drag:2.5});
   if(rice){
-    if(!P.practice&&P.hearts<3){P.hearts++;P.heartGain=vt;popup('기운 충전!',x,y-figH*.3,'#ff8fab',26,1.1);}
+    if(!P.practice&&P.hearts<P.maxHearts){P.hearts++;P.heartGain=vt;popup('기운 충전!',x,y-figH*.3,'#ff8fab',26,1.1);}
     else popup('+80',x,y-figH*.3,'#fff2c8',22);
     sfx('rice');
   }else{popup('+50',x,y-figH*.3,'#e6dcff',20);sfx('collect',P.collectStep++);}
@@ -1382,11 +1417,13 @@ function drawHUD(gb,pulse){
     drawHeart(left+hs/2,top+hs/2,hs,true);
     ctx.font='700 16px "Gowun Dodum",system-ui,sans-serif';ctx.fillStyle='#efe6d2';ctx.textAlign='left';ctx.fillText('∞ 연습',left+hs+6,top+hs/2+1);
   }else{
-    for(let i=0;i<3;i++){
+    // 하트 수(3~6)에 맞춰 크기 조절: 가운데 점수와 겹치지 않게
+    const nH=P.maxHearts,gap=nH>3?4:6,hh=Math.max(14,Math.min(hs,Math.floor((W/2-50-left)/nH)-gap));
+    for(let i=0;i<nH;i++){
       let sc=1;if(i===P.hearts-1)sc+=.08*pulse;
       if(i===P.hearts&&vt-P.heartLost<.4)sc+=.4*(1-(vt-P.heartLost)/.4);
       if(i===P.hearts-1&&vt-P.heartGain<.5)sc+=.4*(1-(vt-P.heartGain)/.5);
-      drawHeart(left+hs/2+i*(hs+6),top+hs/2,hs*sc,i<P.hearts);
+      drawHeart(left+hh/2+i*(hh+gap),top+hs/2,hh*sc,i<P.hearts);
     }
   }
   // 점수 · 콤보
@@ -1485,7 +1522,8 @@ function finishRun(ok){
   const stars=!ok?0:acc>=.9?3:acc>=.7?2:1;
   const ratio=clamp(P.score/(items.maxScore||1),0,1);
   const ri=rankIdx(ratio,song.diff);
-  // 저장
+  // 저장 (계급 상승 확인용 스냅샷을 먼저)
+  const before=kpCall(k=>k.snapshot(),null);
   const prev=songBest[song.id];
   const rec={score:Math.max(prev&&+prev.score||0,Math.round(P.score)),stars:Math.max(prev&&+prev.stars||0,stars),
     rank:RK[Math.max(prev?RK.indexOf(prev.rank):-1,ri)]};
@@ -1494,6 +1532,8 @@ function finishRun(ok){
   let ob=lsGet('best',null);if(!ob||typeof ob!=='object')ob={score:0,rank:RK[0],stars:0};
   const obi=Math.max(RK.indexOf(ob.rank),ri);
   lsSet('best',{score:Math.max(+ob.score||0,Math.round(P.score)),rank:RK[Math.max(0,obi)],stars:Math.max(+ob.stars||0,stars)});
+  const up=before==null?null:kpCall(k=>k.rankUp(before),null);
+  renderRankUp(up);
   // 화면
   $('#res-song').textContent=STAGES[song.stage].name+' · '+song.title+' ('+song.diffName+')'+(P.practice?' · 연습 모드':'');
   $('#res-head').textContent=!ok?'다시 해볼까?':stars===3?'최고야!':stars===2?'정말 잘했어!':'끝까지 달렸어!';
@@ -1514,7 +1554,7 @@ function finishRun(ok){
   killBus(P.bus,.8);play=null;mode='menu';
   showScreen('scr-result');
   for(let i=0;i<stars;i++)setTimeout(()=>sfx('star',i),(reduceMotion?100:650)+i*400);
-  renderTitleBest();
+  renderTitleBest();renderProfile();
 }
 
 /* =====================================================================
@@ -1564,6 +1604,25 @@ function showScreen(id){
   if(id!=='scr-game')mode='menu';
   const f=el&&el.querySelector('[data-autofocus]');
   if(f&&!isTouch)setTimeout(()=>{try{f.focus({preventScroll:true});}catch(e){}},40);
+}
+function renderRankUp(up){
+  const el=$('#res-rankup');
+  if(!up||!up.from||!up.to){el.hidden=true;el.innerHTML='';return;}
+  const pt=kpCall(k=>k.perkText('runner',up.to.idx),[]);
+  el.innerHTML='<div class="ru-head">계급 상승! <span class="hz">'+esc(up.from.char)+'</span> → <span class="hz">'+esc(up.to.char)+'</span></div>'+
+    (pt&&pt.length?'<p class="ru-perk">새 능력: '+pt.map(esc).join(' · ')+'</p>':'');
+  el.hidden=false;
+}
+function renderProfile(){
+  const who=$('#title-who'),box=$('#perk-box');
+  const badge=kpCall(k=>k.badgeHTML(),'');
+  if(badge){$('#title-badge').innerHTML=badge;who.hidden=false;}else who.hidden=true;
+  const pt=kpCall(k=>k.perkText('runner'),null);
+  if(!pt){box.hidden=true;return;}
+  const r=kpCall(k=>k.rank(),null),nx=kpCall(k=>k.nextPerk('runner'),null);
+  box.innerHTML='<h3>내 계급 능력'+(r?' · <b>'+esc(r.char)+'</b>':'')+'</h3><ul>'+pt.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>'+
+    (nx&&nx.text?'<p class="next">다음 계급 '+esc(nx.char)+'('+esc(nx.read)+')가 되면: '+esc(nx.text)+'</p>':'');
+  box.hidden=false;
 }
 function starStr(n){let s='';for(let i=0;i<3;i++)s+=i<n?'★':'<i>★</i>';return s;}
 function renderTitleBest(){
@@ -1708,7 +1767,9 @@ function frame(){
 window.addEventListener('resize',resize);
 window.addEventListener('orientationchange',()=>setTimeout(resize,150));
 resize();
-renderTitleBest();renderChars();renderSongs();syncSettingsUI();updateMuteBtn();
+renderTitleBest();renderProfile();renderChars();renderSongs();syncSettingsUI();updateMuteBtn();
+// 허브에서 대원을 바꾸고 뒤로 돌아온 경우(bfcache) 새 대원 기록으로 다시 읽기
+window.addEventListener('pageshow',e=>{if(!e.persisted||mode==='game')return;loadStore();applyVolumes();renderTitleBest();renderProfile();renderChars();renderSongs();syncSettingsUI();updateMuteBtn();});
 if(document.fonts&&document.fonts.load){document.fonts.load('40px "Nanum Brush Script"').catch(()=>{});}
 requestAnimationFrame(frame);
 })();

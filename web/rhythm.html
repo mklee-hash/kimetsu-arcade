@@ -171,6 +171,24 @@ a.arcade-back:hover{background:#ffc766!important;color:#07081a!important}
 a.arcade-back:focus-visible{outline:3px solid #efe6d2!important;outline-offset:3px}
 a.arcade-back .ab-arrow{font-size:18px;line-height:1}
 a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:center}
+/* 대원 프로필 · 계급 능력 */
+.kp-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:15px;color:var(--paper)}
+.kp-line[hidden],.perk-box[hidden],.rank-up[hidden],.perk-next[hidden]{display:none}
+.kprofile-badge{display:inline-block;padding:3px 10px;background:rgba(7,8,26,.66);clip-path:var(--cut-s);box-shadow:inset 0 0 0 1px rgba(242,178,74,.45);color:var(--dawn)}
+.kp-switch{color:var(--wisteria);font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+.kp-switch:hover{color:var(--paper)}
+.kp-switch:focus-visible{outline:2px solid var(--dawn);outline-offset:2px}
+.perk-box{background:rgba(7,8,26,.66);clip-path:var(--cut-s);padding:10px 14px;box-shadow:inset 0 0 0 1px rgba(242,178,74,.3);font-size:14px;display:flex;flex-direction:column;gap:4px}
+.perk-box h3{margin:0;font-size:14px;font-weight:400;color:var(--dawn);letter-spacing:.06em}
+.perk-box ul{margin:0;padding-left:18px;color:var(--paper)}
+.perk-box .perk-next{color:var(--paper-dim);font-size:13px;margin:0}
+.rank-up{text-align:center;background:rgba(7,8,26,.78);clip-path:var(--cut);padding:12px 16px;box-shadow:inset 0 0 0 2px var(--dawn)}
+.rank-up .ru-head{font-family:var(--brush);font-size:clamp(34px,10vw,48px);line-height:1.15;color:var(--dawn);text-shadow:0 0 22px rgba(242,178,74,.55)}
+.rank-up .ru-head .hz{font-family:var(--hanja)}
+.rank-up .ru-perk{font-size:14px;color:var(--paper);margin-top:4px}
+.rank-up.pop{animation:ruPop .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes ruPop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.rank-up.pop{animation:none}}
 </style>
 </head>
 <body>
@@ -192,6 +210,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
       <li>놓치면 혈귀에게 맞아 집중력이 준다. 50연격마다 <b>형</b>이 발동한다.</li>
     </ul>
     <p class="best-line" id="title-best"></p>
+    <div class="kp-line" id="title-profile" hidden><span id="title-badge"></span><a class="kp-switch" href="index.html#profiles">대원 바꾸기</a></div>
     <div class="btn-row">
       <button class="btn primary" id="btn-start" data-autofocus>시작하기</button>
       <button class="btn" id="btn-settings">환경 설정</button>
@@ -210,6 +229,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
       <button class="tab" data-diff="hard" aria-pressed="false">어려움</button>
     </div>
     <div class="songs" id="song-list" role="group" aria-label="곡 목록"></div>
+    <div class="perk-box" id="sel-perks" hidden><h3>내 계급 능력</h3><ul id="sel-perk-list"></ul><p class="perk-next" id="sel-perk-next"></p></div>
     <label class="check"><input type="checkbox" id="sel-nofail"><span>무실패 연습 <small>집중력이 0이 되어도 끝까지 친다</small></span></label>
     <div class="btn-row"><button class="btn small" id="sel-settings">환경 설정 · 판정 보정</button></div>
     <div class="sticky-bottom"><button class="btn primary" id="sel-start" data-autofocus>출격</button></div>
@@ -281,6 +301,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
       </div>
     </dl>
     <p class="res-best" id="res-best"></p>
+    <div class="rank-up" id="res-rankup" role="status" hidden><div class="ru-head" id="res-rankup-head"></div><div class="ru-perk" id="res-rankup-perk"></div></div>
     <div class="btn-row">
       <button class="btn primary" id="res-retry" data-autofocus>다시 하기</button>
       <button class="btn" id="res-back">곡 선택</button>
@@ -289,6 +310,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
 </section>
 
 <script src="kchars.js"></script>
+<script src="kprofile.js"></script>
 <script>
 (function(){
 'use strict';
@@ -301,9 +323,13 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const lerp=(a,b,t)=>a+(b-a)*t;
 const easeOut=t=>1-Math.pow(1-clamp(t,0,1),3);
 const TAU=Math.PI*2;
-const PFX='kimetsu-arcade:';
-function lsGet(k,d){try{const v=localStorage.getItem(PFX+k);if(v==null)return d;const o=JSON.parse(v);return o==null?d:o;}catch(e){return d;}}
-function lsSet(k,v){try{localStorage.setItem(PFX+k,JSON.stringify(v));}catch(e){}}
+const LEGACY_PFX='kimetsu-arcade:';
+/* 대원 프로필(kprofile.js)이 없으면 옛 접두어 · 능력 없음으로 동작 */
+const KP=(typeof window!=='undefined'&&window.KProfile&&typeof window.KProfile.prefix==='function')?window.KProfile:null;
+function kpCall(fn,def){if(!KP)return def;try{const v=fn(KP);return v===undefined?def:v;}catch(e){return def;}}
+function PFX(){const p=kpCall(k=>k.prefix(),LEGACY_PFX);return typeof p==='string'&&p?p:LEGACY_PFX;}
+function lsGet(k,d){try{const v=localStorage.getItem(PFX()+k);if(v==null)return d;const o=JSON.parse(v);return o==null?d:o;}catch(e){return d;}}
+function lsSet(k,v){try{localStorage.setItem(PFX()+k,JSON.stringify(v));}catch(e){}}
 function rng(seed){let a=seed>>>0;return function(){a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function rgba(hex,a){const n=parseInt(hex.slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
 function mix(a,b,t){const x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);
@@ -315,7 +341,8 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 
 const DEF_SETTINGS={musicVol:.8,sfxVol:.55,muted:false,speed:5,offset:0,noFail:false,diff:'normal',song:0};
 const settings=Object.assign({},DEF_SETTINGS);
-(function loadSettings(){
+function loadSettings(){
+  Object.assign(settings,DEF_SETTINGS);
   const s=lsGet('rhythm:settings',{});
   if(s&&typeof s==='object'){
     const num=(k,a,b)=>{if(Number.isFinite(+s[k]))settings[k]=clamp(+s[k],a,b);};
@@ -325,10 +352,18 @@ const settings=Object.assign({},DEF_SETTINGS);
     if(['easy','normal','hard'].includes(s.diff))settings.diff=s.diff;
     settings.song=Math.round(settings.song);
   }
-})();
+}
+loadSettings();
 function saveSettings(){lsSet('rhythm:settings',settings);}
-let bestRec=lsGet('rhythm:best',{});
-if(!bestRec||typeof bestRec!=='object'||Array.isArray(bestRec))bestRec={};
+let bestRec={};
+function loadBest(){bestRec=lsGet('rhythm:best',{});if(!bestRec||typeof bestRec!=='object'||Array.isArray(bestRec))bestRec={};}
+loadBest();
+/* 곡 시작 때 한 번 읽는 계급 능력 (없으면 기본값) */
+function runPerks(){
+  const pk=kpCall(k=>k.perks('rhythm'),{})||{};
+  const num=(v,d,a,b)=>Number.isFinite(+v)?clamp(+v,a,b):d;
+  return {windowMs:num(pk.windowMs,0,0,60),missDamageMul:num(pk.missDamageMul,1,0,1),specialDmgMul:num(pk.specialDmgMul,1,1,3)};
+}
 
 let reduceMotion=false;
 try{const mq=matchMedia('(prefers-reduced-motion: reduce)');reduceMotion=mq.matches;
@@ -1196,11 +1231,12 @@ function startGame(songIdx,diff){
   const events=comp.ev.slice();
   events.unshift({t:-3,i:'tick',v:1},{t:-2,i:'tick',v:.7},{t:-1,i:'tick',v:.7});
   lastCfg={song:songIdx,diff:diff};
-  play={song:song,diff:diff,comp:comp,color:STYLE[song.style].color,notes:notes,events:events,evIdx:0,
+  const pk=runPerks(),wAdd=pk.windowMs/1000;
+  play={jw:{perfect:JW.perfect+wAdd,good:JW.good+wAdd,ok:JW.ok+wAdd},specialDmg:15*pk.specialDmgMul,song:song,diff:diff,comp:comp,color:STYLE[song.style].color,notes:notes,events:events,evIdx:0,
     bus:newBus(),songT0:actx.currentTime+3.6,approach:2.0-(settings.speed-1)*.15,
     nextIdx:0,drawIdx:0,gtNow:-9,score:0,combo:0,maxCombo:0,counts:{perfect:0,good:0,ok:0,miss:0},
     unitsTotal:units,unitsJudged:0,accSum:0,hp:100,demonMax:Math.max(10,units*.92),demonHP:Math.max(10,units*.92),
-    missDmg:{easy:5,normal:7,hard:9}[diff],noFail:settings.noFail,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
+    missDmg:{easy:5,normal:7,hard:9}[diff]*pk.missDamageMul,noFail:settings.noFail,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
     perf:performer(song),lastNoteT:lastT,lastBeat:-99,specials:0,failed:false,victory:false,finSlash:false,lastSlashFx:-9,holdSpark:0};
   resetScene();jd=null;comboPop=0;flashA=0;hurtV=0;shakeA=0;
   for(const s of laneSrc)s.clear();
@@ -1234,18 +1270,19 @@ function pressLane(l,ts){
   const P=play;if(!P||P.phase!=='play'||P.paused)return;
   const gt=gameTimeAt(ts);
   let hit=null;
-  for(let i=P.nextIdx;i<P.notes.length;i++){const n=P.notes[i];if(n.t>gt+JW.ok)break;
-    if(n.state!==0||n.lane!==l)continue;if(Math.abs(n.t-gt)<=JW.ok){hit=n;break;}}
+  const W=P.jw;
+  for(let i=P.nextIdx;i<P.notes.length;i++){const n=P.notes[i];if(n.t>gt+W.ok)break;
+    if(n.state!==0||n.lane!==l)continue;if(Math.abs(n.t-gt)<=W.ok){hit=n;break;}}
   if(!hit){sfx('tap');return;}
   const dt=gt-hit.t, ad=Math.abs(dt);
-  const kind=ad<=JW.perfect?'perfect':ad<=JW.good?'good':'ok';
+  const kind=ad<=W.perfect?'perfect':ad<=W.good?'good':'ok';
   if(hit.type==='hold')hit.state=1;else hit.state=2;
   judge(kind,hit,dt,false);
 }
 function releaseLane(l,ts){
   const P=play;if(!P||P.phase!=='play'||P.paused)return;
   const gt=gameTimeAt(ts);
-  for(let i=P.nextIdx;i<P.notes.length;i++){const n=P.notes[i];if(n.t>gt+JW.ok)break;
+  for(let i=P.nextIdx;i<P.notes.length;i++){const n=P.notes[i];if(n.t>gt+P.jw.ok)break;
     if(n.state===1&&n.lane===l){
       if(gt<n.end-.1){n.state=3;judge('miss',n,0,true);}
       else{n.state=2;judge('perfect',n,0,true);}
@@ -1289,7 +1326,7 @@ function special(){
   const P=play,st=STYLE[P.song.style];P.specials++;
   const k=(P.specials-1)%6;
   callout={t0:vt,dur:1.5,big:'제'+(k+1)+'형',sub:P.perf.short+' · '+st.name+' · '+st.moves[k],col:P.color};
-  P.demonHP=Math.max(0,P.demonHP-15);
+  P.demonHP=Math.max(0,P.demonHP-P.specialDmg);
   scene.h.dashT=vt;scene.d.hitT=vt+.1;
   specialFx();flashA=.35;flashCol=P.color;if(!reduceMotion)shakeA=Math.max(shakeA,9);
   sfx('special');
@@ -1334,7 +1371,7 @@ function updateGame(dt,now){
   const notes=P.notes;
   if(P.phase==='play'){
     for(let i=P.nextIdx;i<notes.length;i++){const n=notes[i];if(n.t>gt)break;
-      if(n.state===0&&gt>n.t+JW.ok){n.state=3;judge('miss',n,0,false);if(n.type==='hold')judge('miss',n,0,true);}
+      if(n.state===0&&gt>n.t+P.jw.ok){n.state=3;judge('miss',n,0,false);if(n.type==='hold')judge('miss',n,0,true);}
       else if(n.state===1&&gt>=n.end){n.state=2;judge('perfect',n,0,true);}
     }
     while(P.nextIdx<notes.length&&notes[P.nextIdx].state>=2)P.nextIdx++;
@@ -1398,10 +1435,19 @@ function toResult(){
   const rk=rankOf(acc);
   const key=P.song.id+':'+P.diff, prev=bestRec[key];
   let isNew=false;
+  const before=kpCall(k=>k.snapshot(),null);
   if(!P.failed&&(!prev||P.score>prev.score)){
     bestRec[key]={score:Math.round(P.score),acc:Math.round(acc*100)/100,rank:rk[1],combo:P.maxCombo};
     lsSet('rhythm:best',bestRec);isNew=true;
   }
+  const up=before==null?null:kpCall(k=>k.rankUp(before),null);
+  const ru=$('#res-rankup');ru.classList.remove('pop');
+  if(up&&up.from&&up.to){
+    $('#res-rankup-head').innerHTML='계급 상승! <span class="hz">'+up.from.char+'</span> → <span class="hz">'+up.to.char+'</span>';
+    const pt=kpCall(k=>k.perkText('rhythm',up.to.idx),[]);
+    $('#res-rankup-perk').textContent=Array.isArray(pt)&&pt.length?'새 능력: '+pt.join(' · '):'';
+    ru.hidden=false;void ru.offsetWidth;ru.classList.add('pop');
+  }else ru.hidden=true;
   const b=bestRec[key];
   $('#res-song').textContent=P.song.title+' · '+DIFF[P.diff]+' · '+P.perf.name+' · '+STYLE[P.song.style].name;
   const rb=$('#res-bust'),rbSrc=bustURL(P.song,144,P.failed?'hurt':P.victory?'smile':'normal');
@@ -1421,7 +1467,7 @@ function toResult(){
   menuSunrise=P.victory?1:0;
   mode='menu';
   play=null;
-  renderTitleBest();renderSelect();
+  renderTitleBest();renderSelect();renderProfile();
   showScreen('scr-result');
 }
 
@@ -1665,6 +1711,18 @@ function renderTitleBest(){
   if(top){const rk=rankByChar(top.r.rank);el.innerHTML='최고 계급 <b>'+rk[1]+'</b> ('+rk[2]+') · '+top.s.title+' '+DIFF[top.d]+' · '+fmtNum(top.r.score)+'점';}
   else el.textContent='아직 기록이 없다. 첫 혈귀를 베어 보자.';
 }
+function renderProfile(){
+  const line=$('#title-profile'),box=$('#sel-perks');
+  const badge=kpCall(k=>k.badgeHTML(),'');
+  if(badge){$('#title-badge').innerHTML=badge;line.hidden=false;}else line.hidden=true;
+  const pt=kpCall(k=>k.perkText('rhythm'),null);
+  if(!Array.isArray(pt)||!pt.length){box.hidden=true;return;}
+  const ul=$('#sel-perk-list');ul.textContent='';
+  for(const t of pt){const li=document.createElement('li');li.textContent=t;ul.appendChild(li);}
+  const nx=kpCall(k=>k.nextPerk('rhythm'),null),ne=$('#sel-perk-next');
+  if(nx&&nx.text){ne.textContent='다음 계급 '+nx.char+'가 되면: '+nx.text;ne.hidden=false;}else{ne.textContent='';ne.hidden=true;}
+  box.hidden=false;
+}
 const songList=$('#song-list');
 SONGS.forEach((s,i)=>{
   const comp=getComp(s),c=STYLE[s.style].color;
@@ -1694,7 +1752,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>sele
 $('#sel-nofail').addEventListener('change',e=>{settings.noFail=e.target.checked;saveSettings();});
 
 let settingsReturn='scr-title';
-$('#btn-start').addEventListener('click',()=>{initAudio();sfx('ui');renderSelect();showScreen('scr-select');});
+$('#btn-start').addEventListener('click',()=>{initAudio();sfx('ui');renderSelect();renderProfile();showScreen('scr-select');});
 $('#btn-settings').addEventListener('click',()=>{settingsReturn='scr-title';openSettings();});
 $('#sel-settings').addEventListener('click',()=>{settingsReturn='scr-select';openSettings();});
 $('#sel-back').addEventListener('click',()=>{menuSunrise=0;showScreen('scr-title');});
@@ -1798,7 +1856,13 @@ resize();
   }
   if(!el.children.length)el.remove();else el.setAttribute('role','img'),el.setAttribute('aria-label','출연 대원: '+SONGS.map(s=>performer(s).name).join(', '));
 })();
-renderTitleBest();renderSelect();syncSettingsUI();updateMuteBtn();
+renderTitleBest();renderSelect();renderProfile();syncSettingsUI();updateMuteBtn();
+/* 뒤로 가기 캐시로 돌아왔을 때: 허브에서 대원이 바뀌었을 수 있으니 기록 · 설정을 다시 읽는다 */
+window.addEventListener('pageshow',e=>{
+  if(!e.persisted||mode==='game')return;
+  loadSettings();loadBest();applyVolumes();
+  renderTitleBest();renderSelect();renderProfile();syncSettingsUI();updateMuteBtn();
+});
 if(document.fonts&&document.fonts.load){document.fonts.load('40px "Nanum Brush Script"').catch(()=>{});}
 requestAnimationFrame(frame);
 })();

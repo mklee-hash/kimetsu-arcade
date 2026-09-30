@@ -24,6 +24,8 @@
 
 ## 공통 규칙
 
+- 대원 프로필: `web/kprofile.js` (전역 `KProfile`). 한 기기를 여러 명이 쓰도록 대원마다 기록을 `kimetsu-arcade:u:<id>:` 접두어로 따로 저장한다(첫 대원은 옛 접두어 `kimetsu-arcade:`를 이어받음). 계급(네 게임 중 최고)에 따라 게임별 능력치(`KProfile.PERKS`)가 오르고, 결과 화면에 계급 상승을 보여 준다.
+
 - 캐릭터 그림: `web/kchars.js` (전역 `KChars`). 호흡별 매핑 물=탄지로, 번개=젠이츠, 화염=렌고쿠, 짐승=이노스케. `web/_chars-preview.html`은 개발용 미리보기로 배포되지 않는다.
 
 - 외부 리소스는 Google Fonts(Nanum Brush Script, Gowun Dodum)뿐. 그래픽은 Canvas/SVG로 절차 생성, 소리는 WebAudio로 합성.

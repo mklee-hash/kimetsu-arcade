@@ -228,9 +228,180 @@
   .myrank b { font-weight: 400; color: var(--dawn); font-size: 20px; }
   .meta .mine-tag b { color: var(--blood); }
 
+  /* ---------- 누가 할까요? player picker ---------- */
+  .players {
+    margin-top: 34px;
+    padding: 18px 16px 16px;
+    background: rgba(7, 8, 26, 0.62);
+    border: 1px solid var(--line);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    scroll-margin-top: 16px;
+  }
+  .players-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .players h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 1;
+    color: var(--paper);
+  }
+  .players-head p { margin: 0; font-size: 13px; color: var(--paper-dim); }
+  .chips {
+    display: flex;
+    gap: 8px;
+    margin: 14px 0 0;
+    padding: 8px 6px 2px 0;
+    list-style: none;
+    flex-wrap: wrap;
+  }
+  .chip { position: relative; flex: 0 0 auto; }
+  .chip-pick {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    width: 66px;
+    padding: 10px 2px 8px;
+    border: 1px solid var(--line);
+    background: rgba(239, 230, 210, 0.05);
+    color: var(--paper);
+    font: inherit;
+    cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .chip-pick:hover { background: rgba(239, 230, 210, 0.1); }
+  .chip-pick:focus-visible, .chip-edit:focus-visible, .pbtn:focus-visible, .av:focus-visible { outline: 3px solid var(--dawn); outline-offset: 2px; }
+  .chip-pick img, .chip-pick .ph {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    display: block;
+    background: #1b1d3a;
+  }
+  .chip-pick .ph { display: grid; place-items: center; font-size: 24px; color: var(--paper-dim); border: 2px dashed rgba(239, 230, 210, 0.35); background: transparent; }
+  .chip-name { max-width: 62px; font-size: 13px; line-height: 1.2; text-align: center; word-break: break-all; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .chip-rank { font-size: 12px; line-height: 1; color: var(--paper-dim); }
+  .chip-rank b { font-weight: 400; font-size: 15px; color: var(--dawn); }
+  .chip.on .chip-pick {
+    border-color: var(--dawn);
+    background: rgba(242, 178, 74, 0.16);
+    box-shadow: inset 0 0 0 1px var(--dawn);
+  }
+  .chip.on .chip-pick img { box-shadow: 0 0 0 2px var(--dawn), 0 0 16px rgba(242, 178, 74, 0.55); }
+  .chip.on .chip-name { color: var(--dawn); }
+  .chip-edit {
+    position: absolute;
+    top: -8px; right: -8px;
+    width: 28px; height: 28px;
+    display: grid; place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #2a2550;
+    box-shadow: 0 0 0 2px var(--night);
+    color: var(--paper);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .chip-edit:hover { background: var(--wisteria); color: var(--ink); }
+  .chip.add .chip-pick { border-style: dashed; color: var(--paper-dim); }
+  .chip.add.on .chip-pick { border-color: var(--dawn); color: var(--dawn); background: rgba(242, 178, 74, 0.12); }
+  .chip.add.on .ph { border-color: var(--dawn); color: var(--dawn); }
+  .chip.editing .chip-edit { background: var(--wisteria); color: var(--ink); }
+  .guest-note { margin: 8px 0 0; font-size: 13px; color: var(--paper-dim); }
+
+  .ppanel {
+    margin-top: 12px;
+    padding: 16px;
+    color: var(--ink);
+    background:
+      repeating-linear-gradient(0deg, rgba(120, 96, 60, 0.05) 0 2px, transparent 2px 5px),
+      linear-gradient(170deg, #f3ead6, #e2d5b9);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    border-left: 7px solid var(--dawn);
+  }
+  .ppanel[hidden] { display: none; }
+  .ppanel h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1.05; color: #1a1420; }
+  .ppanel .hint { margin: 4px 0 0; font-size: 14px; color: #4a3d4e; }
+  .ppanel label.lbl { display: block; margin: 14px 0 6px; font-size: 13px; letter-spacing: 0.08em; color: #6b5a44; }
+  .ppanel input[type=text] {
+    width: 100%;
+    max-width: 360px;
+    padding: 10px 12px;
+    border: 2px solid rgba(59, 48, 64, 0.35);
+    background: #fffaf0;
+    color: #1a1420;
+    font: inherit;
+    font-size: 17px;
+    border-radius: 0;
+  }
+  .ppanel input[type=text]:focus { outline: none; border-color: var(--blood); }
+  .ppanel .err { min-height: 1.3em; margin: 4px 0 0; font-size: 13px; color: var(--blood); }
+  .avatars { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+  @media (max-width: 420px) { .avatars { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .av {
+    display: grid; justify-items: center; gap: 2px;
+    padding: 8px 2px 6px;
+    border: 2px solid transparent;
+    background: rgba(59, 48, 64, 0.07);
+    color: #3b3040;
+    font: inherit; font-size: 12px; line-height: 1.2;
+    cursor: pointer;
+  }
+  .av img { width: 56px; height: 56px; border-radius: 50%; display: block; }
+  .av[aria-checked="true"] { border-color: var(--blood); background: rgba(216, 52, 63, 0.12); color: #1a1420; }
+  .pactions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .pbtn {
+    padding: 10px 20px;
+    border: 0;
+    background: #3b3040;
+    color: var(--paper);
+    font: inherit; font-size: 15px; letter-spacing: 0.04em;
+    cursor: pointer;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .pbtn.primary { background: var(--blood); }
+  .pbtn.ghost { background: transparent; color: #3b3040; box-shadow: inset 0 0 0 1px rgba(59, 48, 64, 0.4); clip-path: none; }
+  .pbtn.danger-link { margin-left: auto; background: transparent; color: var(--blood); padding-inline: 8px; clip-path: none; text-decoration: underline; text-underline-offset: 3px; }
+  .confirm {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: rgba(216, 52, 63, 0.1);
+    border: 2px solid var(--blood);
+  }
+  .confirm[hidden] { display: none; }
+  .confirm p { margin: 0; color: #1a1420; font-size: 15px; }
+  .confirm .pactions { margin-top: 10px; }
+
+  /* ---------- 계급 능력 ---------- */
+  .perks {
+    margin-top: 18px;
+    border: 1px solid rgba(242, 178, 74, 0.4);
+    background: rgba(242, 178, 74, 0.05);
+  }
+  .perks summary {
+    padding: 12px 14px;
+    cursor: pointer;
+    color: var(--paper);
+    font-size: 15px;
+    list-style: none;
+  }
+  .perks summary::-webkit-details-marker { display: none; }
+  .perks summary::after { content: "펼치기 ▾"; float: right; font-size: 12px; color: var(--paper-dim); margin-top: 3px; }
+  .perks[open] summary::after { content: "접기 ▴"; }
+  .perks summary b { font-weight: 400; color: var(--dawn); font-size: 19px; }
+  .perk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 14px 14px; }
+  @media (max-width: 680px) { .perk-grid { grid-template-columns: 1fr; } }
+  .perk-game { padding: 10px 12px; background: rgba(7, 8, 26, 0.55); border-left: 4px solid var(--c, var(--dawn)); }
+  .perk-game h4 { margin: 0 0 4px; font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.1; color: var(--paper); }
+  .perk-game ul { margin: 0; padding-left: 1.1em; color: var(--paper); font-size: 14px; }
+  .perk-game ul.none { list-style: none; padding-left: 0; color: var(--paper-dim); }
+  .perk-next { margin: 6px 0 0 !important; font-size: 13px; color: var(--paper-dim); }
+  .perk-next b { font-weight: 400; color: var(--dawn); }
+
   @media (prefers-reduced-motion: reduce) {
     h1::after { animation: none; transform: rotate(-8deg) scaleX(1); }
-    .game { transition: none; }
+    .game, .chip-pick { transition: none; }
   }
 </style>
 </head>
@@ -242,6 +413,37 @@
     <h1>귀살 아케이드</h1>
     <p class="lede">해가 뜨기 전까지 혈귀를 베는 네 가지 게임입니다. 호흡을 골라 싸우고, 기록에 따라 癸부터 甲, 그리고 최고위 柱(주)까지 계급을 받습니다. PC와 휴대폰 모두 설치 없이 바로 플레이할 수 있습니다.</p>
   </header>
+
+  <section class="players" id="profiles" aria-labelledby="players-title">
+    <div class="players-head">
+      <h2 id="players-title">누가 할까요?</h2>
+      <p>대원마다 기록과 계급이 따로 저장돼요</p>
+    </div>
+    <ul class="chips" id="chips" aria-label="대원 고르기"></ul>
+    <p class="guest-note" id="guestNote" hidden></p>
+
+    <form class="ppanel" id="ppanel" hidden novalidate>
+      <h3 id="pTitle">새 대원 등록</h3>
+      <p class="hint" id="pHint">이름을 적고 좋아하는 캐릭터를 골라요.</p>
+      <label class="lbl" for="pName">이름 (8글자까지)</label>
+      <input type="text" id="pName" maxlength="8" autocomplete="off" enterkeyhint="done" placeholder="예: 민지">
+      <p class="err" id="pErr" aria-live="polite"></p>
+      <span class="lbl" style="display:block;margin:6px 0 6px;font-size:13px;letter-spacing:.08em;color:#6b5a44" id="avLbl">얼굴 고르기</span>
+      <div class="avatars" id="avatars" role="radiogroup" aria-labelledby="avLbl"></div>
+      <div class="pactions">
+        <button type="submit" class="pbtn primary" id="pOk">만들기</button>
+        <button type="button" class="pbtn ghost" id="pCancel">취소</button>
+        <button type="button" class="pbtn danger-link" id="pDel" hidden>대원 지우기</button>
+      </div>
+      <div class="confirm" id="pConfirm" hidden role="alertdialog" aria-labelledby="pConfirmMsg">
+        <p id="pConfirmMsg">정말 지울까요? 기록도 모두 사라져요</p>
+        <div class="pactions">
+          <button type="button" class="pbtn primary" id="pDelYes">지우기</button>
+          <button type="button" class="pbtn ghost" id="pDelNo">그만두기</button>
+        </div>
+      </div>
+    </form>
+  </section>
 
   <ul class="games">
     <li>
@@ -293,39 +495,172 @@
       <li>癸<small>계</small></li><li>壬<small>임</small></li><li>辛<small>신</small></li><li>庚<small>경</small></li><li>己<small>기</small></li>
       <li>戊<small>무</small></li><li>丁<small>정</small></li><li>丙<small>병</small></li><li>乙<small>을</small></li><li>甲<small>갑</small></li><li class="hashira">柱<small>주</small></li>
     </ol>
-    <p>모든 게임은 결과 화면에서 이 열한 단계 중 하나를 줍니다. 빨간 칸이 지금까지 네 게임에서 얻은 내 최고 계급입니다. 가장 낮은 계급은 癸이고, 甲 위의 柱(주)는 귀살대 최고위 검객 아홉 명에게만 허락된 자리입니다. 기록은 이 브라우저에만 저장됩니다.</p>
+    <details class="perks" id="perks">
+      <summary id="perksSum">계급 능력</summary>
+      <div class="perk-grid" id="perkGrid"></div>
+    </details>
+    <p>모든 게임은 결과 화면에서 이 열한 단계 중 하나를 줍니다. 빨간 칸이 지금까지 네 게임에서 얻은 최고 계급이고, 계급이 오를수록 모든 게임에서 쓸 수 있는 능력이 생깁니다. 가장 낮은 계급은 癸이고, 甲 위의 柱(주)는 귀살대 최고위 검객 아홉 명에게만 허락된 자리입니다. 기록은 이 브라우저에만, 대원마다 따로 저장됩니다.</p>
   </section>
 </main>
 
+<script src="kchars.js"></script>
+<script src="kprofile.js"></script>
 <script>
-// Highlight the viewer's best rank across the four games, from each game's saved record.
+// Player picker + rank ladder + perk panel, all read through KProfile (current profile).
 (() => {
-  const RK = ['癸', '壬', '辛', '庚', '己', '戊', '丁', '丙', '乙', '甲', '柱'];
-  const READ = ['계', '임', '신', '경', '기', '무', '정', '병', '을', '갑', '주'];
-  const get = k => { try { const v = localStorage.getItem('kimetsu-arcade:' + k); return v == null ? null : JSON.parse(v); } catch (e) { return null; } };
-  const byScore = (s, cuts) => { let r = -1; if (typeof s === 'number' && s > 0) cuts.forEach((c, i) => { if (s >= c) r = i; }); return r; };
-  const best = {};
-  // 새벽의 일섬 saves only the score; cutoffs match slash.html.
-  best['slash.html'] = byScore(get('slash:best'), [0, 800, 2000, 3500, 5500, 8000, 11000, 14500, 18500, 23000, 32000]);
-  const rh = get('rhythm:best'); let r = -1;
-  if (rh && typeof rh === 'object') for (const k in rh) if (rh[k]) r = Math.max(r, RK.indexOf(rh[k].rank));
-  best['rhythm.html'] = r;
-  // 호흡 달리기 / 두둥! 혈귀 잡기 save {score, rank, stars}; rank is the hanja of the best rank.
-  for (const g of ['runner', 'mole']) { const b = get(g + ':best'); best[g + '.html'] = b && b.rank ? RK.indexOf(b.rank) : -1; }
+  const KP = window.KProfile;
+  if (!KP) return;
+  const $ = id => document.getElementById(id);
+  const CH = (window.KChars && KChars.list) ? KChars.list : [];
+  const GAME_OF = { 'slash.html': 'slash', 'rhythm.html': 'rhythm', 'runner.html': 'runner', 'mole.html': 'mole' };
+  const GAME_COLOR = { slash: 'var(--flame)', rhythm: 'var(--thunder)', runner: 'var(--water)', mole: 'var(--wisteria)' };
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-  let top = -1, topGame = '';
-  document.querySelectorAll('.game').forEach(a => {
-    const i = best[a.getAttribute('href')];
-    if (i == null || i < 0) return;
-    const s = document.createElement('span'); s.className = 'mine-tag';
-    s.innerHTML = '내 계급 <b>' + RK[i] + '</b>';
-    a.querySelector('.meta').appendChild(s);
-    if (i > top) { top = i; topGame = a.querySelector('h2').textContent; }
+  function bust(avatar, px) {
+    try { if (window.KChars && KChars.byId(avatar)) return KChars.bustDataURL(avatar, px, { expr: 'smile' }); } catch (e) { /* fall through */ }
+    return '';
+  }
+  function face(avatar, size) {
+    const src = bust(avatar, size * 2);
+    if (!src) { const d = el('span', 'ph', '?'); return d; }
+    const im = el('img'); im.src = src; im.alt = ''; im.width = size; im.height = size; return im;
+  }
+
+
+  /* ---------- panel state ---------- */
+  let mode = null, editId = null, pickAv = CH.length ? CH[0].id : 'tanjiro', dismissed = false;
+
+  function buildAvatars() {
+    const box = $('avatars'); box.textContent = '';
+    CH.forEach(c => {
+      const b = el('button', 'av'); b.type = 'button';
+      b.setAttribute('role', 'radio'); b.dataset.id = c.id;
+      b.setAttribute('aria-checked', String(c.id === pickAv));
+      b.appendChild(face(c.id, 56));
+      b.appendChild(el('span', null, c.name.split(' ').pop()));
+      b.addEventListener('click', () => { pickAv = c.id; syncAvatars(); });
+      box.appendChild(b);
+    });
+  }
+  function syncAvatars() {
+    document.querySelectorAll('.av').forEach(b => b.setAttribute('aria-checked', String(b.dataset.id === pickAv)));
+  }
+
+  function openPanel(m, id) {
+    mode = m; editId = id || null;
+    const p = id ? KP.list().find(x => x.id === id) : null;
+    const first = !KP.list().length;
+    pickAv = p ? p.avatar : (CH.length ? CH[Math.floor(Math.random() * CH.length)].id : 'tanjiro');
+    $('pName').value = p ? p.name : '';
+    $('pErr').textContent = '';
+    $('pTitle').textContent = m === 'edit' ? '대원 고치기' : (first ? '처음 오셨나요? 대원 등록!' : '새 대원 등록');
+    $('pHint').textContent = m === 'edit' ? '이름이나 얼굴을 바꿀 수 있어요.'
+      : (first ? '이름을 적고 좋아하는 캐릭터를 골라요. 지금까지의 기록은 첫 대원에게 이어져요. 등록하지 않고 바로 게임을 해도 괜찮아요.'
+               : '이름을 적고 좋아하는 캐릭터를 골라요. 새 대원은 癸부터 시작해요.');
+    $('pOk').textContent = m === 'edit' ? '저장' : '만들기';
+    $('pCancel').textContent = (m === 'add' && first) ? '나중에 할게요' : '취소';
+    $('pDel').hidden = m !== 'edit';
+    $('pConfirm').hidden = true;
+    syncAvatars();
+    $('ppanel').hidden = false;
+    renderChips();
+  }
+  function closePanel() {
+    mode = null; editId = null;
+    $('ppanel').hidden = true;
+    renderChips();
+  }
+
+  $('ppanel').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const name = $('pName').value.replace(/\s+/g, ' ').trim();
+    if (!name) { $('pErr').textContent = '이름을 적어 주세요.'; $('pName').focus(); return; }
+    if (mode === 'edit' && editId) { KP.rename(editId, name); KP.setAvatar(editId, pickAv); }
+    else KP.create(name, pickAv);
+    closePanel(); renderAll();
   });
-  if (top < 0) return;
-  const li = document.querySelectorAll('.ladder li')[top];
-  if (li) { li.classList.add('mine'); li.setAttribute('aria-current', 'true'); }
-  document.getElementById('myRank').innerHTML = '내 최고 계급 <b>' + RK[top] + '</b> (' + READ[top] + ') · ' + topGame;
+  $('pCancel').addEventListener('click', () => { if (!KP.list().length) dismissed = true; closePanel(); renderAll(); });
+  $('pDel').addEventListener('click', () => { $('pConfirm').hidden = false; $('pDelNo').focus(); });
+  $('pDelNo').addEventListener('click', () => { $('pConfirm').hidden = true; $('pDel').focus(); });
+  $('pDelYes').addEventListener('click', () => { if (editId) KP.remove(editId); dismissed = true; closePanel(); renderAll(); });
+
+  /* ---------- chips ---------- */
+  function renderChips() {
+    const list = KP.list(), cur = KP.current(), box = $('chips');
+    box.textContent = '';
+    list.forEach(p => {
+      const li = el('li', 'chip' + (cur && cur.id === p.id ? ' on' : '') + (mode === 'edit' && editId === p.id ? ' editing' : ''));
+      const b = el('button', 'chip-pick'); b.type = 'button';
+      if (cur && cur.id === p.id) b.setAttribute('aria-pressed', 'true'); else b.setAttribute('aria-pressed', 'false');
+      const r = KP.rank(p.id);
+      b.appendChild(face(p.avatar, 50));
+      b.appendChild(el('span', 'chip-name', p.name));
+      const rk = el('span', 'chip-rank'); rk.append('계급 '); rk.appendChild(el('b', null, r.char)); b.appendChild(rk);
+      b.setAttribute('aria-label', p.name + ', 계급 ' + r.char + (cur && cur.id === p.id ? ', 지금 선택됨' : ''));
+      b.addEventListener('click', () => { KP.setCurrent(p.id); if (mode === 'edit') closePanel(); renderAll(); });
+      const e = el('button', 'chip-edit', '✎'); e.type = 'button';
+      e.setAttribute('aria-label', p.name + ' 고치기');
+      e.addEventListener('click', () => { if (mode === 'edit' && editId === p.id) closePanel(); else openPanel('edit', p.id); });
+      li.append(b, e); box.appendChild(li);
+    });
+    const add = el('li', 'chip add' + (mode === 'add' ? ' on' : ''));
+    const ab = el('button', 'chip-pick'); ab.type = 'button';
+    const ph = el('span', 'ph', '+'); ab.appendChild(ph);
+    ab.appendChild(el('span', 'chip-name', '대원 추가'));
+    ab.addEventListener('click', () => { if (mode === 'add') closePanel(); else { openPanel('add'); $('pName').focus(); } });
+    add.appendChild(ab); box.appendChild(add);
+
+    const note = $('guestNote');
+    if (!list.length && $('ppanel').hidden) { note.hidden = false; note.textContent = '아직 대원이 없어요. 지금은 손님으로 기록돼요 — "대원 추가"를 눌러 이름을 등록해 보세요.'; }
+    else note.hidden = true;
+  }
+
+  /* ---------- ladder, per-game tags, perks ---------- */
+  function renderRanks() {
+    const cur = KP.current(), r = KP.rank();
+    const who = cur ? cur.name + '의' : '내';
+    document.querySelectorAll('.mine-tag').forEach(n => n.remove());
+    document.querySelectorAll('.game').forEach(a => {
+      const g = GAME_OF[a.getAttribute('href')]; if (!g) return;
+      const i = KP.gameRank(g); if (i < 0) return;
+      const s = el('span', 'mine-tag'); s.append((cur ? cur.name + ' ' : '내 ') + '계급 '); s.appendChild(el('b', null, KP.RANKS[i]));
+      a.querySelector('.meta').appendChild(s);
+    });
+    document.querySelectorAll('.ladder li').forEach((li, i) => {
+      const on = i === r.idx; li.classList.toggle('mine', on);
+      if (on) li.setAttribute('aria-current', 'true'); else li.removeAttribute('aria-current');
+    });
+    const my = $('myRank'); my.textContent = '';
+    if (r.idx < 0) my.textContent = (cur ? cur.name + '은(는) ' : '') + '아직 기록이 없습니다. 모든 대원은 癸에서 시작합니다.';
+    else { my.append(who + ' 최고 계급 '); my.appendChild(el('b', null, r.char)); my.append(' (' + r.read + ') · ' + KP.GAME_NAMES[r.game]); }
+
+    const idx = Math.max(0, r.idx);
+    const sum = $('perksSum'); sum.textContent = '';
+    sum.append('계급 능력 · 지금 '); sum.appendChild(el('b', null, KP.RANKS[idx])); sum.append(' (' + KP.READ[idx] + ')');
+    const grid = $('perkGrid'); grid.textContent = '';
+    KP.GAMES.forEach(g => {
+      const card = el('div', 'perk-game'); card.style.setProperty('--c', GAME_COLOR[g]);
+      card.appendChild(el('h4', null, KP.GAME_NAMES[g]));
+      const t = KP.perkText(g, idx), none = t.length === 1 && t[0].indexOf('아직 없음') === 0;
+      const ul = el('ul', none ? 'none' : null); t.forEach(s => ul.appendChild(el('li', null, s))); card.appendChild(ul);
+      const n = KP.nextPerk(g, idx), np = el('p', 'perk-next');
+      if (n) { np.append('다음 계급 '); np.appendChild(el('b', null, n.char + '(' + n.read + ')')); np.append('이 되면: ' + n.text); }
+      else np.textContent = '최고 계급! 모든 능력을 얻었어요.';
+      card.appendChild(np); grid.appendChild(card);
+    });
+  }
+
+  function renderAll() {
+    if (!KP.list().length && !dismissed && mode == null) openPanel('add');
+    renderChips(); renderRanks();
+  }
+
+  buildAvatars();
+  $('perks').open = true;
+  renderAll();
+  // Another tab (or a game in another tab) changed records/profiles.
+  window.addEventListener('storage', () => { if (mode == null) renderAll(); else renderRanks(); });
+  window.addEventListener('pageshow', ev => { if (ev.persisted) renderAll(); });
 })();
 </script>
 <script>
