@@ -214,7 +214,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
       <li>혈귀가 오면 <b>베기!</b> 화면 오른쪽 누르기 · <span class="kbd">J</span> (점프로 넘어도 돼요)</li>
       <li>반짝이는 <b>질풍 부적</b>을 먹으면 앞으로 휙! 잠깐 동안 모두 부수고 먹으며 달려요.</li>
       <li>날아오는 박쥐 혈귀는 <b>숙이기!</b> 가운데 아래 버튼 · <span class="kbd">↓</span> <span class="kbd">S</span></li>
-      <li>하늘의 등꽃과 주먹밥은 점프해서 모아요. 주먹밥은 하트를 채워 줘요.</li>
+      <li>하늘의 등꽃과 주먹밥은 점프해서 모아요. 주먹밥은 하트를 채워 줘요. 하트가 다 떨어져도 다시 일어나 끝까지 달려요!</li>
     </ul>
     <div class="who" id="title-who" hidden><span id="title-badge"></span><a href="index.html#profiles">대원 바꾸기</a></div>
     <p class="best-line" id="title-best"></p>
@@ -559,8 +559,8 @@ function buildChart(song){
     beat+=bars*4;
   }
   const fl=items.filter(i=>i.kind==='flower'&&!i.attach&&i.b>8);
-  for(const f of [.4,.78]){const it=fl[Math.floor(fl.length*f)];if(it)it.kind='rice';}
-  for(const f of [.22,.6]){let k=Math.floor(fl.length*f);while(fl[k]&&fl[k].kind!=='flower')k++;if(fl[k])fl[k].kind='boost';}
+  for(const f of [.2,.4,.6,.8]){const it=fl[Math.floor(fl.length*f)];if(it)it.kind='rice';}
+  for(const f of [.3,.7]){let k=Math.floor(fl.length*f);while(fl[k]&&fl[k].kind!=='flower')k++;if(fl[k])fl[k].kind='boost';}
   items.sort((a,b)=>a.b-b.b);
   let combo=0,max=0,haz=0;
   for(const it of items){combo++;max+=(it.act==='collect'?(it.kind==='rice'?80:50):100)*multOf(combo);if(it.act!=='collect')haz++;}
@@ -1188,7 +1188,7 @@ function startGame(songIdx){
     songT0:actx.currentTime+1.3+3*spb,gtNow:-9,wb:-9,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
     char:ch,practice:settings.practice,hearts:maxH,maxHearts:maxH,invuln:0,score:0,scoreShown:0,combo:0,maxCombo:0,comboPop:0,
     counts:{perfect:0,good:0,ok:0,miss:0},collected:0,collectStep:0,jumpT0:-9,jumpGt:-99,air:Math.min(1,clamp(spb*1.3,.62,.85)*pk.airMul),wasAir:false,
-    slashT:-9,boostEnd:-99,boostOff:0,boostGrace:-9,crouchUntil:-9,crouchHeld:false,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9};
+    slashT:-9,boostEnd:-99,boostOff:0,boostGrace:-9,crouchUntil:-9,crouchHeld:false,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9,revives:0};
   parts=[];pops=[];arcs=[];callout=null;shakeA=0;flashA=0;
   mode='game';
   showScreen('scr-game');updateMuteBtn();
@@ -1325,8 +1325,11 @@ function missItem(it){
   if(!reduceMotion)shakeA=Math.max(shakeA,7);flashA=.25;flashCol='#d8343f';
   spawn(heroX+figH*.2,groundY-figH*.5,8,{sp:120,col:['#ffffff','#ff8fab'],life:.4,sz:figH*.04,k:'star',drag:3});
   if(!P.practice&&vt>=P.invuln){
-    P.hearts--;P.invuln=vt+1.1;P.heartLost=vt;
-    if(P.hearts<=0)startFail();
+    P.hearts--;P.invuln=vt+1.8;P.heartLost=vt;
+    if(P.hearts<=0){ // 쓰러져도 다시 일어나 끝까지 달린다 (게임 오버 없음)
+      P.revives++;P.hearts=Math.min(2,P.maxHearts);P.invuln=vt+3;P.heartGain=vt;
+      callout={t0:vt,dur:1.6,big:'힘내!',sub:'다시 일어나서 끝까지 달려요!',col:'#ff8fab'};
+    }
   }
 }
 function startFail(){
@@ -1594,7 +1597,8 @@ function finishRun(ok){
   const song=P.song,items=P.items,c=P.counts;
   const haz=items.hazards||1;
   const acc=(c.perfect*ACCW.perfect+c.good*ACCW.good+c.ok*ACCW.ok)/haz;
-  const stars=!ok?0:acc>=.9?3:acc>=.7?2:1;
+  let stars=!ok?0:acc>=.9?3:acc>=.7?2:1;
+  if(ok&&P.revives>0)stars=Math.min(stars,P.revives>=3?1:2);
   const ratio=clamp(P.score/(items.maxScore||1),0,1);
   const ri=rankIdx(ratio,song.diff);
   // 저장 (계급 상승 확인용 스냅샷을 먼저)
@@ -1613,6 +1617,7 @@ function finishRun(ok){
   $('#res-song').textContent=STAGES[song.stage].name+' · '+song.title+' ('+song.diffName+')'+(P.practice?' · 연습 모드':'');
   $('#res-head').textContent=!ok?'다시 해볼까?':stars===3?'최고야!':stars===2?'정말 잘했어!':'끝까지 달렸어!';
   $('#res-sub').textContent=!ok?'하트가 모두 떨어졌어요. 연습 모드로 먼저 달려 봐도 좋아요.':
+    P.revives>0?P.revives+'번 쓰러졌지만 다시 일어나 끝까지 달렸어요! 하트를 지키면 별이 더 늘어나요.':
     stars===3?'박자에 딱딱 맞췄어요. 진짜 귀살대원 같아요!':stars===2?'별 세 개까지 조금만 더! 동그라미에 닿을 때 눌러 봐요.':'박자 줄이 동그라미에 닿을 때 누르면 별이 늘어나요.';
   const spans=document.querySelectorAll('#res-stars span');
   spans.forEach((sp,i)=>{sp.classList.remove('on');void sp.offsetWidth;if(i<stars)sp.classList.add('on');});
