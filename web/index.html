@@ -107,7 +107,8 @@
     --c: var(--water);
     position: relative;
     display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    --art-h: 150px;
+    grid-template-rows: auto auto auto 1fr auto;
     gap: 6px;
     padding: 22px 22px 20px;
     color: var(--ink);
@@ -118,6 +119,15 @@
     clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
     transition: transform 0.18s ease, filter 0.18s ease;
   }
+  /* Gameplay picture strip at the top of each card (drawn on canvas, see the art script). */
+  .game .art {
+    display: block;
+    width: 100%;
+    height: var(--art-h);
+    margin-bottom: 8px;
+    pointer-events: none;
+  }
+  @media (max-width: 460px) { .game { --art-h: 136px; } }
   .game::before {
     content: "";
     position: absolute;
@@ -160,7 +170,7 @@
   .seal {
     position: absolute;
     right: 18px;
-    top: 18px;
+    top: calc(22px + var(--art-h) + 14px);
     width: 44px;
     height: 44px;
     display: grid;
@@ -448,6 +458,7 @@
   <ul class="games">
     <li>
       <a class="game" href="slash.html" data-c="flame">
+        <canvas class="art" data-art="slash" aria-hidden="true"></canvas>
         <span class="genre">스와이프 액션</span>
         <h2>새벽의 일섬</h2>
         <p>날아오르는 혈귀를 손가락이나 마우스로 그어 벱니다. 사람은 베지 말고, 두목은 목을 노리세요.</p>
@@ -458,6 +469,7 @@
     </li>
     <li>
       <a class="game" href="rhythm.html" data-c="thunder">
+        <canvas class="art" data-art="rhythm" aria-hidden="true"></canvas>
         <span class="genre">리듬 액션</span>
         <h2>호흡의 박자</h2>
         <p>북과 샤미센 박자에 맞춰 노트를 쳐서 혈귀를 벱니다. 정확하게 칠수록 강한 형이 나갑니다.</p>
@@ -468,16 +480,18 @@
     </li>
     <li>
       <a class="game" href="runner.html" data-c="water">
+        <canvas class="art" data-art="runner" aria-hidden="true"></canvas>
         <span class="genre">리듬 달리기</span>
         <h2>호흡 달리기</h2>
-        <p>음악에 맞춰 달리며 박자에 맞춰 점프하고 혈귀를 벱니다. 하트가 3개라 어린이도 끝까지 즐길 수 있어요.</p>
-        <div class="meta"><span>조작 <b>점프 · 베기 버튼</b></span><span>노래 <b>3곡</b></span><span>소리 <b>필요</b></span></div>
+        <p>음악에 맞춰 달리며 점프·베기·숙이기로 장애물과 혈귀를 넘어요. 질풍 부적을 먹으면 앞으로 휙 달려 나가며 모두 부숴요!</p>
+        <div class="meta"><span>조작 <b>점프 · 베기 · 숙이기</b></span><span>노래 <b>3곡</b></span><span>소리 <b>필요</b></span></div>
         <span class="seal" aria-hidden="true">走</span>
         <span class="play">출진하기</span>
       </a>
     </li>
     <li>
       <a class="game" href="mole.html" data-c="wisteria">
+        <canvas class="art" data-art="mole" aria-hidden="true"></canvas>
         <span class="genre">리듬 두더지 잡기</span>
         <h2>두둥! 혈귀 잡기</h2>
         <p>북소리에 맞춰 상자에서 튀어나오는 혈귀를 톡톡 잡아요. 네즈코는 친구니까 누르면 안 돼요!</p>
@@ -742,6 +756,521 @@
   window.addEventListener('resize', resize);
   resize();
   if (!reduce) requestAnimationFrame(frame);
+})();
+</script>
+<script>
+// Card pictures: one small procedural still per game, drawn into canvas.art.
+(() => {
+  const arts = Array.prototype.slice.call(document.querySelectorAll('canvas.art'));
+  if (!arts.length) return;
+  const TAU = Math.PI * 2;
+  const OUT = '#120a10';
+  const KC = (window.KChars && typeof KChars.drawFigure === 'function') ? KChars : null;
+  const has = id => !!(KC && KC.byId && KC.byId(id));
+  const COLS = { tanjiro: '#4fb3ff', zenitsu: '#ffe14d', rengoku: '#ff7a2f', inosuke: '#9fb4c8', nezuko: '#ff7fb0', shinobu: '#b58cff' };
+
+  function heroId(def) {
+    try { const p = window.KProfile && KProfile.current(); if (p && has(p.avatar)) return p.avatar; } catch (e) { /* ignore */ }
+    return def;
+  }
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function shade(hex, k) {
+    const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    const f = v => Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k));
+    return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')';
+  }
+  function glow(g, x, y, r, col, a) {
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, col.replace('A', a)); gr.addColorStop(1, col.replace('A', 0));
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+
+  /* ---------- shared pieces ---------- */
+  function sky(g, W, H, stops) {
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    stops.forEach((c, i) => gr.addColorStop(i / (stops.length - 1), c));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  }
+  function stars(g, W, H, seed, n, maxY) {
+    const R = rng(seed);
+    for (let i = 0; i < n; i++) {
+      const x = R() * W, y = R() * H * maxY, s = 0.6 + R() * 1.3;
+      g.fillStyle = 'rgba(239,230,210,' + (0.25 + R() * 0.6).toFixed(2) + ')'; g.fillRect(x, y, s, s);
+    }
+  }
+  function moon(g, x, y, r) {
+    glow(g, x, y, r * 3, 'rgba(239,230,210,A)', 0.28);
+    g.fillStyle = '#f4ecd8'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+    g.fillStyle = 'rgba(180,170,150,.35)';
+    g.beginPath(); g.arc(x - r * 0.3, y - r * 0.2, r * 0.22, 0, TAU); g.arc(x + r * 0.35, y + r * 0.25, r * 0.15, 0, TAU); g.fill();
+  }
+  function framePath(g, W, H, c) {
+    g.beginPath(); g.moveTo(c, 0); g.lineTo(W, 0); g.lineTo(W, H - c); g.lineTo(W - c, H); g.lineTo(0, H); g.lineTo(0, c); g.closePath();
+  }
+  function heart(g, x, y, s, col) {
+    g.fillStyle = col; g.beginPath(); g.moveTo(x, y + s * 0.35);
+    g.bezierCurveTo(x - s * 0.9, y - s * 0.3, x - s * 0.3, y - s * 0.9, x, y - s * 0.35);
+    g.bezierCurveTo(x + s * 0.3, y - s * 0.9, x + s * 0.9, y - s * 0.3, x, y + s * 0.35); g.fill();
+  }
+  function figure(g, id, x, y, h, o) {
+    if (has(id)) { try { KC.drawFigure(g, id, x, y, h, o || {}); return; } catch (e) { /* fallback */ } }
+    const f = (o && o.facing) || 1, col = COLS[id] || '#4fb3ff';
+    g.save(); g.translate(x, y); g.scale(f, 1);
+    g.fillStyle = '#1a1420'; g.strokeStyle = OUT; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(-h * 0.16, 0); g.lineTo(-h * 0.1, -h * 0.55); g.lineTo(h * 0.1, -h * 0.55); g.lineTo(h * 0.16, 0); g.closePath(); g.fill();
+    g.fillStyle = col; g.fillRect(-h * 0.12, -h * 0.5, h * 0.24, h * 0.1);
+    g.fillStyle = '#f3dcc0'; g.beginPath(); g.arc(0, -h * 0.72, h * 0.17, 0, TAU); g.fill(); g.stroke();
+    g.strokeStyle = '#dfe6f0'; g.lineWidth = Math.max(2, h * 0.03);
+    g.beginPath(); g.moveTo(h * 0.1, -h * 0.45); g.lineTo(h * 0.6, -h * 0.25); g.stroke();
+    g.restore();
+  }
+  function bust(g, id, cx, cy, h, o) {
+    if (has(id)) { try { KC.drawBust(g, id, cx, cy, h, o || {}); return; } catch (e) { /* fallback */ } }
+    g.save(); g.fillStyle = '#2a1a22'; g.beginPath(); g.ellipse(cx, cy + h * 0.35, h * 0.38, h * 0.25, 0, 0, TAU); g.fill();
+    g.fillStyle = '#1a0f14'; g.beginPath(); g.arc(cx, cy - h * 0.05, h * 0.3, 0, TAU); g.fill();
+    g.fillStyle = '#f6dfc8'; g.beginPath(); g.arc(cx, cy, h * 0.22, 0, TAU); g.fill();
+    g.fillStyle = '#ff7fb0'; g.fillRect(cx - h * 0.18, cy - h * 0.3, h * 0.36, h * 0.06);
+    g.restore();
+  }
+
+  // Round horned demon in the 새벽의 일섬 style (glowing slit eyes, fangs).
+  function hornDemon(g, x, y, r, light, dark, rot) {
+    g.save(); g.translate(x, y); g.rotate(rot || 0);
+    g.lineJoin = 'round';
+    g.fillStyle = '#eadcbc'; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = Math.max(1, r * 0.07);
+    for (const s of [-1, 1]) {
+      g.beginPath(); g.moveTo(s * r * 0.2, -r * 0.74);
+      g.quadraticCurveTo(s * r * 0.75, -r * 1.0, s * r * 0.6, -r * 1.55);
+      g.quadraticCurveTo(s * r * 0.5, -r * 1.02, s * r * 0.55, -r * 0.6); g.closePath(); g.fill(); g.stroke();
+    }
+    const gr = g.createRadialGradient(-r * 0.25, -r * 0.3, r * 0.1, 0, 0, r * 1.15);
+    gr.addColorStop(0, light); gr.addColorStop(1, dark);
+    g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, r, r * 0.95, 0, 0, TAU); g.fill();
+    g.lineWidth = Math.max(1.2, r * 0.09); g.strokeStyle = 'rgba(0,0,0,.7)'; g.stroke();
+    const ey = -r * 0.14, ex = r * 0.34;
+    for (const s of [-1, 1]) {
+      g.fillStyle = 'rgba(255,214,74,.35)'; g.beginPath(); g.arc(s * ex, ey, r * 0.3, 0, TAU); g.fill();
+      g.fillStyle = '#ffd64a'; g.beginPath(); g.ellipse(s * ex, ey, r * 0.18, r * 0.12, s * 0.35, 0, TAU); g.fill();
+      g.fillStyle = '#4a0008'; g.beginPath(); g.ellipse(s * ex, ey, r * 0.045, r * 0.1, 0, 0, TAU); g.fill();
+      g.strokeStyle = '#0a0205'; g.lineWidth = r * 0.09; g.beginPath(); g.moveTo(s * r * 0.14, ey - r * 0.13); g.lineTo(s * r * 0.56, ey - r * 0.27); g.stroke();
+    }
+    const my = r * 0.36, mw = r * 0.46;
+    g.fillStyle = '#12030a'; g.beginPath(); g.moveTo(-mw, my); g.quadraticCurveTo(0, my + r * 0.44, mw, my); g.quadraticCurveTo(0, my + r * 0.12, -mw, my); g.fill();
+    g.fillStyle = '#f4ead6';
+    for (let i = 0; i < 5; i++) {
+      const tx = -mw * 0.8 + i * mw * 0.4, ty = my + r * 0.06 - Math.abs(i - 2) * r * 0.02;
+      g.beginPath(); g.moveTo(tx - r * 0.07, ty); g.lineTo(tx + r * 0.07, ty); g.lineTo(tx, ty + r * 0.14); g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+  // Cute chubby demon (호흡 달리기 / 두둥 style): big round eyes, blush, one fang.
+  function cuteDemon(g, x, y, r, col, o) {
+    o = o || {};
+    g.save(); g.translate(x, y); g.lineJoin = 'round'; g.lineCap = 'round';
+    const lw = Math.max(1.3, r * 0.08);
+    g.strokeStyle = OUT; g.lineWidth = lw;
+    if (o.feet) {
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(0, r * 1.08, r * 0.9, r * 0.16, 0, 0, TAU); g.fill();
+      g.fillStyle = shade(col, -0.5);
+      for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * r * 0.4, r * 0.95, r * 0.28, r * 0.14, 0, 0, TAU); g.fill(); g.stroke(); }
+    }
+    g.fillStyle = '#f3e6c4';
+    for (const s of [-1, 1]) {
+      g.beginPath(); g.moveTo(s * r * 0.28, -r * 0.82); g.quadraticCurveTo(s * r * 0.42, -r * 1.35, s * r * 0.55, -r * 1.3);
+      g.quadraticCurveTo(s * r * 0.52, -r, s * r * 0.62, -r * 0.68); g.closePath(); g.fill(); g.stroke();
+    }
+    const bg = g.createRadialGradient(-r * 0.3, -r * 0.4, r * 0.1, 0, 0, r * 1.1);
+    bg.addColorStop(0, shade(col, 0.4)); bg.addColorStop(1, col);
+    g.fillStyle = bg; g.beginPath(); g.ellipse(0, 0, r, r * 0.92, 0, 0, TAU); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(0, r * 0.35, r * 0.55, r * 0.4, 0, 0, TAU); g.fill();
+    const look = o.look == null ? -1 : o.look;
+    for (const ex of [-r * 0.3, r * 0.3]) {
+      if (o.hurt) {
+        g.lineWidth = lw * 1.2; g.beginPath();
+        g.moveTo(ex - r * 0.13, -r * 0.3); g.lineTo(ex + r * 0.13, -r * 0.06); g.moveTo(ex + r * 0.13, -r * 0.3); g.lineTo(ex - r * 0.13, -r * 0.06); g.stroke();
+        continue;
+      }
+      g.lineWidth = lw * 0.8;
+      g.fillStyle = '#fffaf0'; g.beginPath(); g.ellipse(ex, -r * 0.18, r * 0.24, r * 0.29, 0, 0, TAU); g.fill(); g.stroke();
+      g.fillStyle = '#1a1020'; g.beginPath(); g.ellipse(ex + look * r * 0.08, -r * 0.14, r * 0.13, r * 0.17, 0, 0, TAU); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(ex + look * r * 0.08 - r * 0.05, -r * 0.22, r * 0.05, 0, TAU); g.fill();
+    }
+    g.fillStyle = 'rgba(255,140,170,.6)'; g.beginPath(); g.ellipse(-r * 0.6, r * 0.2, r * 0.13, r * 0.08, 0, 0, TAU); g.ellipse(r * 0.6, r * 0.2, r * 0.13, r * 0.08, 0, 0, TAU); g.fill();
+    g.lineWidth = lw * 0.9;
+    if (o.hurt) { g.fillStyle = '#5a1020'; g.beginPath(); g.ellipse(0, r * 0.4, r * 0.14, r * 0.11, 0, 0, TAU); g.fill(); g.stroke(); }
+    else {
+      g.beginPath(); g.moveTo(-r * 0.22, r * 0.3); g.quadraticCurveTo(0, r * 0.46, r * 0.22, r * 0.3); g.stroke();
+      g.fillStyle = '#fffaf0'; g.beginPath(); g.moveTo(-r * 0.14, r * 0.35); g.lineTo(-r * 0.08, r * 0.48); g.lineTo(-r * 0.02, r * 0.38); g.closePath(); g.fill();
+    }
+    g.restore();
+  }
+  function paperLantern(g, x, y, w, col) {
+    const h = w * 1.4;
+    glow(g, x, y, h * 2.2, 'rgba(255,160,80,A)', 0.42);
+    const bg = g.createRadialGradient(x, y - 2, 1, x, y, h * 0.7);
+    bg.addColorStop(0, '#fff0c0'); bg.addColorStop(0.5, col || '#ffac55'); bg.addColorStop(1, '#c8402a');
+    g.fillStyle = bg; g.beginPath(); g.ellipse(x, y, w / 2, h / 2, 0, 0, TAU); g.fill();
+    g.strokeStyle = 'rgba(140,40,20,.5)'; g.lineWidth = 1;
+    for (let k = -1; k <= 1; k++) { g.beginPath(); g.ellipse(x, y + k * h * 0.22, w / 2 * (1 - Math.abs(k) * 0.12), 1, 0, 0, TAU); g.stroke(); }
+    g.fillStyle = '#16100e'; g.fillRect(x - w * 0.3, y - h / 2 - 2, w * 0.6, 3); g.fillRect(x - w * 0.3, y + h / 2 - 1, w * 0.6, 3);
+  }
+  // Tapered crescent blade trail from (x0,y0) to (x1,y1).
+  function bladeTrail(g, x0, y0, x1, y1, bulge, width, cols) {
+    const dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+    const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    const crescent = (b, w) => {
+      g.beginPath(); g.moveTo(x0, y0);
+      g.quadraticCurveTo(mx + nx * (b + w), my + ny * (b + w), x1, y1);
+      g.quadraticCurveTo(mx + nx * (b - w), my + ny * (b - w), x0, y0); g.closePath();
+    };
+    const gr = g.createLinearGradient(x0, y0, x1, y1);
+    gr.addColorStop(0, 'rgba(255,122,47,0)'); gr.addColorStop(0.35, cols[0]); gr.addColorStop(1, cols[1]);
+    g.save();
+    g.shadowColor = cols[2]; g.shadowBlur = width * 2.2;
+    g.fillStyle = gr; crescent(bulge, width); g.fill();
+    g.shadowBlur = 0;
+    const gi = g.createLinearGradient(x0, y0, x1, y1);
+    gi.addColorStop(0, 'rgba(255,255,255,0)'); gi.addColorStop(0.5, 'rgba(255,248,220,.95)'); gi.addColorStop(1, '#ffffff');
+    g.fillStyle = gi; crescent(bulge + width * 0.25, width * 0.32); g.fill();
+    g.restore();
+  }
+  function roof(g, x, base, w, h) {
+    g.beginPath(); g.moveTo(x - w * 0.08, base); g.quadraticCurveTo(x + w * 0.2, base - h * 0.12, x + w * 0.28, base - h);
+    g.lineTo(x + w * 0.72, base - h); g.quadraticCurveTo(x + w * 0.8, base - h * 0.12, x + w * 1.08, base); g.closePath(); g.fill();
+  }
+  function skyline(g, W, base, s, seed, col, lit) {
+    const R = rng(seed);
+    let x = -s * 0.3;
+    while (x < W) {
+      const w = s * (0.7 + R() * 0.8), bh = s * (0.35 + R() * 0.45), rh = s * (0.22 + R() * 0.12);
+      g.fillStyle = col; g.fillRect(x, base - bh, w, bh + 2);
+      roof(g, x, base - bh + 1, w, rh);
+      if (lit) {
+        const n = Math.max(1, Math.floor(w / (s * 0.3)));
+        for (let i = 0; i < n; i++) if (R() < 0.55) {
+          g.fillStyle = 'rgba(255,196,110,' + (0.45 + R() * 0.4).toFixed(2) + ')';
+          g.fillRect(x + w * (i + 0.3) / n, base - bh * 0.62, s * 0.1, s * 0.12);
+        }
+      }
+      x += w + s * (0.05 + R() * 0.2);
+    }
+  }
+
+  /* ---------- 새벽의 일섬 ---------- */
+  function drawSlash(g, W, H) {
+    sky(g, W, H, ['#070a1e', '#171640', '#2c1b44']);
+    stars(g, W, H, 11, Math.round(W * H / 700), 0.6);
+    moon(g, W * 0.86, H * 0.25, H * 0.13);
+    // far hills
+    g.fillStyle = '#0f0f2c'; g.beginPath(); g.moveTo(0, H);
+    for (let x = 0; x <= W + 20; x += 20) g.lineTo(x, H * 0.74 - Math.sin(x / 70 + 1) * H * 0.05 - Math.sin(x / 23) * H * 0.015);
+    g.lineTo(W, H); g.closePath(); g.fill();
+    // demon flight arcs (dotted)
+    g.save(); g.setLineDash([2, 5]); g.strokeStyle = 'rgba(239,230,210,.28)'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(W * 0.14, H * 1.0); g.quadraticCurveTo(W * 0.22, H * 0.1, W * 0.34, H * 0.34); g.stroke();
+    g.beginPath(); g.moveTo(W * 0.62, H * 1.0); g.quadraticCurveTo(W * 0.72, H * 0.05, W * 0.86, H * 0.62); g.stroke();
+    g.restore();
+    const r = Math.min(H * 0.13, W * 0.06);
+    hornDemon(g, W * 0.27, H * 0.36, r * 0.9, '#b77ad8', '#3b1560', -0.2);
+    hornDemon(g, W * 0.79, H * 0.46, r * 0.95, '#6fc6b8', '#123f44', 0.25);
+    // the sliced one
+    const cx = W * 0.53, cy = H * 0.42, ang = Math.atan2(H * 0.62, W * 0.26);
+    const nx = -Math.sin(ang), ny = Math.cos(ang), off = r * 0.28;
+    for (const s of [-1, 1]) {
+      g.save();
+      g.translate(s * nx * off, s * ny * off + (s > 0 ? r * 0.12 : 0));
+      const L = r * 4, dx = Math.cos(ang) * L, dy = Math.sin(ang) * L;
+      g.beginPath(); g.moveTo(cx - dx, cy - dy); g.lineTo(cx + dx, cy + dy);
+      g.lineTo(cx + dx + s * nx * L, cy + dy + s * ny * L); g.lineTo(cx - dx + s * nx * L, cy - dy + s * ny * L); g.closePath(); g.clip();
+      hornDemon(g, cx, cy, r * 1.15, '#ff7a6a', '#5a0f1c', 0);
+      g.restore();
+    }
+    // embers from the cut
+    const R = rng(7);
+    for (let i = 0; i < 14; i++) {
+      const t = (R() - 0.5) * 2.4, d = r * (0.3 + R() * 1.4) * (R() < 0.5 ? -1 : 1);
+      const px = cx + Math.cos(ang) * t * r + nx * d, py = cy + Math.sin(ang) * t * r + ny * d;
+      g.fillStyle = R() < 0.5 ? '#ffd27a' : '#ff7a2f'; g.beginPath(); g.arc(px, py, 0.8 + R() * 1.6, 0, TAU); g.fill();
+    }
+    const L1 = H * 0.55;
+    bladeTrail(g, cx - Math.cos(ang) * L1 * 1.05, cy - Math.sin(ang) * L1 * 1.05, cx + Math.cos(ang) * L1 * 0.85, cy + Math.sin(ang) * L1 * 0.85,
+      -r * 0.35, Math.max(3.5, H * 0.04), ['rgba(255,122,47,.9)', '#ffd06a', 'rgba(255,122,47,.9)']);
+    // lantern row
+    const ry = x => H * 0.8 + Math.sin(x / W * Math.PI) * H * 0.05;
+    g.strokeStyle = '#2b2222'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, ry(0));
+    for (let x = 0; x <= W; x += 8) g.lineTo(x, ry(x)); g.stroke();
+    const lw = Math.max(9, Math.min(15, H * 0.085)), n = Math.max(5, Math.round(W / 58));
+    for (let i = 0; i < n; i++) {
+      const x = W * (i + 0.5) / n; g.strokeStyle = '#2b2222'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(x, ry(x)); g.lineTo(x, ry(x) + 5); g.stroke();
+      paperLantern(g, x, ry(x) + 5 + lw * 0.7, lw);
+    }
+    // hero
+    const id = heroId('rengoku');
+    figure(g, id, W * 0.09, H * 0.99, H * 0.5, { facing: 1, swing: 0.95, trail: false, t: 0 });
+  }
+
+  /* ---------- 호흡의 박자 ---------- */
+  function drawRhythm(g, W, H) {
+    sky(g, W, H, ['#0a0b22', '#16163c', '#231a3c']);
+    stars(g, W, H, 23, Math.round(W * H / 900), 0.5);
+    g.fillStyle = '#0d0e26'; skyline(g, W, H * 0.97, H * 0.28, 5, '#0d0e26', true);
+    g.fillStyle = '#1a1432'; g.fillRect(0, H * 0.93, W, H);
+    const hwW = Math.min(W * 0.36, 190), hwX = (W - hwW) / 2 + W * 0.02, lane = hwW / 4, judgeY = H * 0.8;
+    const TH = '#ffe14d', PA = '#efe6d2';
+    g.fillStyle = 'rgba(7,8,26,.86)'; g.fillRect(hwX, 0, hwW, H);
+    // beat lines
+    for (let k = 0; k < 6; k++) { const y = judgeY - k * H * 0.16; g.fillStyle = k % 4 === 0 ? 'rgba(165,139,220,.26)' : 'rgba(165,139,220,.1)'; g.fillRect(hwX, y, hwW, 1); }
+    g.fillStyle = 'rgba(165,139,220,.25)'; for (let i = 1; i < 4; i++) g.fillRect(Math.round(hwX + i * lane), 0, 1, H);
+    g.fillStyle = 'rgba(165,139,220,.7)'; g.fillRect(hwX - 2, 0, 2, H); g.fillRect(hwX + hwW, 0, 2, H);
+    // pressed lane glow
+    const gl = g.createLinearGradient(0, judgeY, 0, judgeY - H * 0.6); gl.addColorStop(0, 'rgba(255,225,77,.4)'); gl.addColorStop(1, 'rgba(255,225,77,0)');
+    g.fillStyle = gl; g.fillRect(hwX + lane, 0, lane, judgeY);
+    // judgement line
+    g.save(); g.shadowColor = TH; g.shadowBlur = 10;
+    g.fillStyle = 'rgba(255,225,77,.3)'; g.fillRect(hwX, judgeY - 6, hwW, 12);
+    g.fillStyle = '#fff6c8'; g.fillRect(hwX, judgeY - 1.5, hwW, 3);
+    g.restore();
+    const nh = Math.max(7, Math.min(12, lane * 0.26));
+    const blade = (x, y, w, h) => { const e = Math.min(5, w * 0.18); g.beginPath(); g.moveTo(x + e, y - h / 2); g.lineTo(x + w - e, y - h / 2); g.lineTo(x + w, y); g.lineTo(x + w - e, y + h / 2); g.lineTo(x + e, y + h / 2); g.lineTo(x, y); g.closePath(); };
+    for (let l = 0; l < 4; l++) { blade(hwX + l * lane + 3, judgeY, lane - 6, nh + 4); g.lineWidth = 1.2; g.strokeStyle = 'rgba(239,230,210,.45)'; g.stroke(); }
+    const note = (l, y, c) => {
+      const x = hwX + l * lane + 3, w = lane - 6;
+      g.fillStyle = c; blade(x, y, w, nh); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(x + 4, y - nh / 2 + 2, w - 8, 1.5);
+      g.fillStyle = 'rgba(7,8,26,.35)'; g.fillRect(x + 4, y + nh / 2 - 3, w - 8, 1.5);
+    };
+    note(0, H * 0.14, TH); note(2, H * 0.3, PA); note(3, H * 0.46, TH); note(0, H * 0.62, TH);
+    note(1, H * 0.06, '#f2b24a'); note(2, H * 0.06, '#f2b24a');
+    // hit burst on lane 1
+    const bx = hwX + lane * 1.5;
+    glow(g, bx, judgeY, lane * 1.3, 'rgba(255,240,170,A)', 0.8);
+    g.strokeStyle = '#fff6c8'; g.lineWidth = 1.5;
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU + 0.2, r0 = lane * 0.35, r1 = lane * (k % 2 ? 0.62 : 0.85); g.beginPath(); g.moveTo(bx + Math.cos(a) * r0, judgeY + Math.sin(a) * r0 * 0.7); g.lineTo(bx + Math.cos(a) * r1, judgeY + Math.sin(a) * r1 * 0.7); g.stroke(); }
+    g.save(); g.font = Math.round(H * 0.17) + 'px "Nanum Brush Script","Gungsuh",cursive'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 4; g.lineJoin = 'round'; g.strokeStyle = 'rgba(7,8,26,.95)'; g.strokeText('완벽!', bx + lane * 0.5, judgeY - H * 0.25); g.fillStyle = TH; g.fillText('완벽!', bx + lane * 0.5, judgeY - H * 0.25);
+    g.restore();
+    // music notes
+    g.save(); g.fillStyle = 'rgba(165,139,220,.85)'; g.font = Math.round(H * 0.14) + 'px system-ui,sans-serif'; g.textAlign = 'center';
+    g.fillText('♪', hwX - W * 0.05, H * 0.24); g.fillText('♫', hwX + hwW + W * 0.06, H * 0.2); g.restore();
+    // tanjiro + demon
+    const side = (W - hwW) / 2;
+    figure(g, 'tanjiro', hwX - side * 0.72, H * 0.97, H * 0.66, { facing: 1, swing: 0.5, trail: true, t: 0 });
+    const dr = Math.min(H * 0.2, side * 0.3);
+    const dx = hwX + hwW + side * 0.55, dy = H * 0.56;
+    hornDemon(g, dx, dy, dr, '#b77ad8', '#3b1560', 0.12);
+    // slash mark on the demon
+    bladeTrail(g, dx - dr * 1.1, dy - dr * 0.9, dx + dr * 0.9, dy + dr * 0.8, dr * 0.2, Math.max(2.5, dr * 0.14), ['rgba(79,179,255,.9)', '#bfe6ff', 'rgba(79,179,255,.9)']);
+  }
+
+  /* ---------- 호흡 달리기 ---------- */
+  function drawRunner(g, W, H) {
+    sky(g, W, H, ['#0a1030', '#1a2458', '#3a3470']);
+    stars(g, W, H, 31, Math.round(W * H / 800), 0.55);
+    moon(g, W * 0.82, H * 0.22, H * 0.1);
+    const gy = H * 0.84;
+    skyline(g, W, gy - H * 0.12, H * 0.34, 9, '#1c2352', false);
+    skyline(g, W, gy - H * 0.02, H * 0.4, 17, '#0e1232', true);
+    // road
+    g.fillStyle = '#2a2440'; g.fillRect(0, gy, W, H - gy);
+    g.fillStyle = '#5a4d78'; g.fillRect(0, gy, W, 2);
+    g.fillStyle = 'rgba(239,230,210,.12)';
+    for (let x = 6; x < W; x += 26) g.fillRect(x, gy + (H - gy) * 0.5, 13, 2);
+    const s = H * 0.64, hx = W * 0.3;
+    // motion lines behind the runner
+    g.lineCap = 'round';
+    [[0.3, 0.55], [0.42, 0.8], [0.52, 0.45], [0.64, 0.7]].forEach(([fy, len]) => {
+      const y = H * fy, x1 = hx - H * 0.18, x0 = x1 - H * 0.55 * len;
+      const lg = g.createLinearGradient(x0, 0, x1, 0); lg.addColorStop(0, 'rgba(191,230,255,0)'); lg.addColorStop(1, 'rgba(191,230,255,.7)');
+      g.strokeStyle = lg; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
+    });
+    // jump arc
+    g.save(); g.setLineDash([2, 5]); g.strokeStyle = 'rgba(239,230,210,.4)'; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(hx - H * 0.5, gy); g.quadraticCurveTo(hx, gy - H * 0.62, hx + H * 0.5, gy); g.stroke(); g.restore();
+    // barrel
+    const bw = s * 0.34, bh = s * 0.38;
+    g.save(); g.translate(hx, gy); g.lineJoin = 'round'; g.strokeStyle = OUT; g.lineWidth = Math.max(1.5, s * 0.02);
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(0, 0, s * 0.24, s * 0.045, 0, 0, TAU); g.fill();
+    g.fillStyle = '#9a6536'; g.beginPath(); g.moveTo(-bw * 0.42, 0); g.quadraticCurveTo(-bw * 0.6, -bh / 2, -bw * 0.42, -bh); g.lineTo(bw * 0.42, -bh); g.quadraticCurveTo(bw * 0.6, -bh / 2, bw * 0.42, 0); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,220,170,.2)'; g.fillRect(-bw * 0.3, -bh * 0.95, bw * 0.12, bh * 0.9);
+    g.fillStyle = '#3b2a24'; g.fillRect(-bw * 0.52, -bh * 0.3, bw * 1.04, bh * 0.08); g.fillRect(-bw * 0.52, -bh * 0.78, bw * 1.04, bh * 0.08);
+    g.fillStyle = '#c48a52'; g.beginPath(); g.ellipse(0, -bh, bw * 0.42, bh * 0.08, 0, 0, TAU); g.fill(); g.stroke();
+    g.restore();
+    // wisteria flower floating
+    const fx = W * 0.54, fy = H * 0.26, fs = H * 0.6;
+    glow(g, fx, fy + fs * 0.12, fs * 0.4, 'rgba(201,182,242,A)', 0.6);
+    g.fillStyle = '#6fae52'; g.beginPath(); g.ellipse(fx - fs * 0.07, fy - fs * 0.02, fs * 0.08, fs * 0.03, -0.5, 0, TAU); g.ellipse(fx + fs * 0.07, fy - fs * 0.02, fs * 0.08, fs * 0.03, 0.5, 0, TAU); g.fill();
+    for (let k = 0; k < 7; k++) {
+      const p = k / 6, n = k < 2 ? 3 : k < 5 ? 2 : 1, w = fs * (0.1 - 0.065 * p), py = fy + p * fs * 0.3;
+      for (let j = 0; j < n; j++) {
+        const px = fx + (n === 1 ? 0 : (j / (n - 1) - 0.5) * w * 1.6), rr = fs * (0.042 - 0.018 * p);
+        const c0 = [239, 232, 255], c1 = [122, 88, 200], m = p * 0.9;
+        g.fillStyle = 'rgb(' + c0.map((v, i) => Math.round(v + (c1[i] - v) * m)).join(',') + ')';
+        g.beginPath(); g.arc(px, py, rr, 0, TAU); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.arc(px - rr * 0.3, py - rr * 0.3, rr * 0.3, 0, TAU); g.fill();
+      }
+    }
+    // cute demon ahead
+    const dr = s * 0.24;
+    cuteDemon(g, W * 0.76, gy - dr * 1.1, dr, '#d0506a', { feet: true, look: -1 });
+    // hearts HUD
+    const hs = Math.max(9, H * 0.08);
+    for (let i = 0; i < 3; i++) heart(g, 14 + hs * 0.6 + i * hs * 1.3, 12 + hs * 0.5, hs, '#ff5a6a');
+    // runner mid-jump over the barrel
+    const id = heroId('zenitsu');
+    // dust puff where the jump started
+    g.fillStyle = 'rgba(239,230,210,.28)';
+    for (const [ox, oy, rr] of [[-0.46, -0.02, 0.05], [-0.4, -0.05, 0.035], [-0.52, -0.04, 0.03]]) { g.beginPath(); g.arc(hx + ox * H, gy + oy * H, rr * H, 0, TAU); g.fill(); }
+    figure(g, id, hx + H * 0.03, gy - bh - H * 0.12, H * 0.4, { facing: 1, walk: 0.25, t: 0 });
+  }
+
+  /* ---------- 두둥! 혈귀 잡기 ---------- */
+  function barrel(g, cx, by, rx, bh, lid) {
+    const ry = rx * 0.3, topY = by - bh, bot = rx * 0.9;
+    g.fillStyle = 'rgba(10,5,8,.45)'; g.beginPath(); g.ellipse(cx, by, rx * 1.05, ry * 0.8, 0, 0, TAU); g.fill();
+    return {
+      open() {
+        g.fillStyle = '#d9a066'; g.beginPath(); g.ellipse(cx, topY, rx, ry, 0, 0, TAU); g.fill();
+        g.fillStyle = '#1f110b'; g.beginPath(); g.ellipse(cx, topY + ry * 0.08, rx * 0.86, ry * 0.78, 0, 0, TAU); g.fill();
+      },
+      front() {
+        g.save();
+        g.beginPath(); g.moveTo(cx - rx, topY);
+        g.bezierCurveTo(cx - rx * 1.08, topY + bh * 0.4, cx - rx * 1.04, by - bh * 0.2, cx - bot, by);
+        g.ellipse(cx, by, bot, ry * 0.8, 0, Math.PI, 0, true);
+        g.bezierCurveTo(cx + rx * 1.04, by - bh * 0.2, cx + rx * 1.08, topY + bh * 0.4, cx + rx, topY);
+        g.ellipse(cx, topY, rx, ry, 0, 0, Math.PI, false); g.closePath();
+        const gr = g.createLinearGradient(cx - rx, 0, cx + rx, 0);
+        gr.addColorStop(0, '#5c3219'); gr.addColorStop(0.35, '#c98547'); gr.addColorStop(0.55, '#b87438'); gr.addColorStop(1, '#5a3018');
+        g.fillStyle = gr; g.fill();
+        g.save(); g.clip();
+        g.strokeStyle = 'rgba(60,30,14,.5)'; g.lineWidth = 1;
+        for (let k = -3; k <= 3; k++) { const xx = cx + k * rx * 0.28; g.beginPath(); g.moveTo(xx, topY); g.lineTo(xx + k * rx * 0.03, by + ry); g.stroke(); }
+        const band = Math.max(3, bh * 0.12);
+        for (const f of [0.22, 0.72]) {
+          const yy = topY + bh * f;
+          g.fillStyle = f < 0.5 ? '#2c1a10' : '#b3262f';
+          g.beginPath(); g.ellipse(cx, yy + ry * 0.35, rx * 1.1, ry * 0.9, 0, 0, Math.PI); g.lineTo(cx - rx * 1.1, yy + ry * 0.35 - band);
+          g.ellipse(cx, yy + ry * 0.35 - band, rx * 1.1, ry * 0.9, 0, Math.PI, 0, true); g.closePath(); g.fill();
+        }
+        const hg = g.createLinearGradient(0, topY, 0, by); hg.addColorStop(0, 'rgba(255,220,160,.28)'); hg.addColorStop(0.5, 'rgba(255,220,160,0)'); hg.addColorStop(1, 'rgba(10,4,4,.3)');
+        g.fillStyle = hg; g.fillRect(cx - rx * 1.2, topY - ry, rx * 2.4, bh + ry * 2);
+        g.restore();
+        g.strokeStyle = '#e8b477'; g.lineWidth = Math.max(2, rx * 0.06); g.beginPath(); g.ellipse(cx, topY, rx * 0.98, ry * 0.94, 0, 0.05, Math.PI - 0.05); g.stroke();
+        g.strokeStyle = OUT; g.lineWidth = 1.5; g.beginPath(); g.ellipse(cx, topY, rx, ry, 0, 0, Math.PI); g.stroke();
+        if (lid) {
+          const th = rx * 0.14, lx = cx + rx * 0.06, ly = topY - rx * 0.12;
+          g.save(); g.translate(lx, ly); g.rotate(-0.08);
+          // peeking eyes in the gap
+          g.fillStyle = '#ffd64a'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * rx * 0.22 - rx * 0.06, ry * 0.55, rx * 0.08, rx * 0.05, 0, 0, TAU); g.fill(); }
+          g.fillStyle = '#8c5a2e'; g.beginPath(); g.ellipse(0, 0, rx * 1.03, ry * 1.05, 0, 0, Math.PI); g.lineTo(-rx * 1.03, -th); g.ellipse(0, -th, rx * 1.03, ry * 1.05, 0, Math.PI, 0, true); g.closePath(); g.fill();
+          g.fillStyle = '#c98f55'; g.beginPath(); g.ellipse(0, -th, rx * 1.03, ry * 1.05, 0, 0, TAU); g.fill();
+          g.fillStyle = '#5a3418'; g.fillRect(-rx * 0.3, -th - ry * 0.25, rx * 0.6, ry * 0.28);
+          g.strokeStyle = OUT; g.lineWidth = 1.2; g.beginPath(); g.ellipse(0, -th, rx * 1.03, ry * 1.05, 0, 0, TAU); g.stroke();
+          g.restore();
+        }
+        g.restore();
+      },
+      topY
+    };
+  }
+  function festLantern(g, x, y, s, col) {
+    glow(g, x, y + s * 0.9, s * 1.8, 'rgba(255,180,100,A)', 0.35);
+    g.fillStyle = '#120a10'; g.fillRect(x - s * 0.35, y, s * 0.7, s * 0.2); g.fillRect(x - s * 0.35, y + s * 1.4, s * 0.7, s * 0.2);
+    const gr = g.createRadialGradient(x, y + s * 0.8, s * 0.1, x, y + s * 0.8, s * 0.8);
+    gr.addColorStop(0, '#fff0c0'); gr.addColorStop(0.35, col); gr.addColorStop(1, shade(col, -0.45));
+    g.fillStyle = gr; g.beginPath(); g.ellipse(x, y + s * 0.9, s * 0.55, s * 0.72, 0, 0, TAU); g.fill();
+  }
+  function drawMole(g, W, H) {
+    sky(g, W, H, ['#140c24', '#2a1530', '#3a1c24']);
+    stars(g, W, H, 41, Math.round(W * H / 1400), 0.35);
+    // lantern string
+    const ry = x => H * 0.05 + Math.sin(x / W * Math.PI) * H * 0.06;
+    g.strokeStyle = '#120a10'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, ry(0)); for (let x = 0; x <= W; x += 8) g.lineTo(x, ry(x)); g.stroke();
+    const ls = Math.max(8, H * 0.085), ln = Math.max(5, Math.round(W / 60));
+    for (let i = 0; i < ln; i++) { const x = W * (i + 0.5) / ln; festLantern(g, x, ry(x), ls, i % 3 === 2 ? '#f2b24a' : '#d8343f'); }
+    // stage
+    const sy = H * 0.5;
+    const glowG = g.createRadialGradient(W / 2, H * 0.8, H * 0.1, W / 2, H * 0.8, W * 0.6);
+    glowG.addColorStop(0, 'rgba(255,196,120,.3)'); glowG.addColorStop(1, 'rgba(255,196,120,0)');
+    g.fillStyle = glowG; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#4a2a1c'; g.fillRect(0, sy, W, H - sy);
+    g.strokeStyle = 'rgba(20,10,8,.4)'; g.lineWidth = 1;
+    for (let k = 1; k < 5; k++) { const yy = sy + (H - sy) * k / 5; g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke(); }
+    const sh = Math.max(6, H * 0.05), sn = Math.round(W / (sh * 1.8));
+    for (let k = 0; k < sn; k++) { g.fillStyle = k % 2 ? '#efe6d2' : '#d8343f'; g.fillRect(k * W / sn, sy - sh, Math.ceil(W / sn), sh); }
+    g.fillStyle = '#120a10'; g.fillRect(0, sy - sh - 2, W, 2);
+
+    const bw = Math.min(W * 0.2, H * 0.56), rx = bw / 2, bh = bw * 0.56, by = H * 0.93;
+    const xs = [W * 0.2, W * 0.5, W * 0.8];
+    // left: demon popping, slashed
+    const b1 = barrel(g, xs[0], by, rx, bh); b1.open();
+    const ds = bw * 0.95, dcy = b1.topY - ds * 0.14;
+    cuteDemon(g, xs[0], dcy, ds * 0.46, '#8a4fc8', { hurt: true });
+    b1.front();
+    bladeTrail(g, xs[0] - ds * 0.62, dcy - ds * 0.5, xs[0] + ds * 0.62, dcy + ds * 0.25, -ds * 0.06, Math.max(3, ds * 0.06), ['rgba(255,240,200,.9)', '#ffffff', 'rgba(255,225,77,.9)']);
+    // star pops
+    g.fillStyle = '#ffe14d';
+    for (const [ox, oy, z] of [[-0.62, -0.28, 0.09], [0.55, -0.55, 0.07], [0.7, 0.05, 0.05]]) {
+      const px = xs[0] + ox * ds, py = dcy + oy * ds, r = z * ds;
+      g.beginPath(); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU - Math.PI / 2, rr = k % 2 ? r * 0.4 : r; g.lineTo(px + Math.cos(a) * rr, py + Math.sin(a) * rr); } g.closePath(); g.fill();
+    }
+    g.save(); g.font = Math.round(H * 0.2) + 'px "Nanum Brush Script","Gungsuh",cursive'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 3.5; g.lineJoin = 'round'; g.strokeStyle = 'rgba(18,10,16,.9)';
+    const tx = xs[0] + ds * 0.62, ty = dcy - ds * 0.52;
+    g.strokeText('+100', tx, ty); g.fillStyle = '#ffe14d'; g.fillText('+100', tx, ty);
+    g.restore();
+    // middle: nezuko (friend)
+    const b2 = barrel(g, xs[1], by, rx, bh); b2.open();
+    bust(g, 'nezuko', xs[1], b2.topY - bw * 0.2, bw * 1.05, { expr: 'smile' });
+    b2.front();
+    const hx = xs[1] + bw * 0.58, hy = b2.topY - bw * 0.62, hs = Math.max(12, bw * 0.3);
+    heart(g, hx, hy, hs, '#ff7fb0');
+    g.save(); g.font = Math.round(Math.max(11, H * 0.1)) + 'px "Gowun Dodum",system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 3; g.lineJoin = 'round'; g.strokeStyle = 'rgba(18,10,16,.85)'; g.strokeText('친구', hx, hy + hs * 0.62);
+    g.fillStyle = '#ffe4ef'; g.fillText('친구', hx, hy + hs * 0.62); g.restore();
+    // right: closed barrel, something peeking
+    const b3 = barrel(g, xs[2], by, rx, bh, true); b3.front();
+    g.save(); g.fillStyle = 'rgba(239,230,210,.85)'; g.font = Math.round(H * 0.15) + 'px "Nanum Brush Script","Gungsuh",cursive'; g.textAlign = 'center';
+    g.fillText('둥!', xs[2] + bw * 0.1, b3.topY - bw * 0.35); g.restore();
+  }
+
+  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole };
+  function render(cv) {
+    const fn = SCENES[cv.dataset.art]; if (!fn) return;
+    const W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const pw = Math.round(W * dpr), ph = Math.round(H * dpr);
+    if (cv.width !== pw) cv.width = pw;
+    if (cv.height !== ph) cv.height = ph;
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, pw, ph);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const c = 12;
+    g.save(); framePath(g, W, H, c); g.clip();
+    try { fn(g, W, H); } catch (e) { /* keep the card usable even if a scene fails */ }
+    g.restore();
+    // blade-cut frame: dark ink edge + faint inner paper line
+    g.save();
+    g.lineWidth = 2; g.strokeStyle = '#1a1420';
+    g.translate(1, 1); framePath(g, W - 2, H - 2, c - 0.5); g.stroke();
+    g.strokeStyle = 'rgba(239,230,210,.2)'; g.lineWidth = 1; g.translate(3, 3); framePath(g, W - 8, H - 8, c - 2); g.stroke();
+    g.restore();
+  }
+  const renderAll = () => arts.forEach(render);
+  let tm = 0;
+  const later = () => { clearTimeout(tm); tm = setTimeout(renderAll, 150); };
+  renderAll();
+  window.addEventListener('resize', later);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderAll);
+  // The hero follows the chosen player.
+  const prof = document.getElementById('profiles');
+  if (prof) prof.addEventListener('click', later);
+  window.addEventListener('storage', later);
+  window.addEventListener('pageshow', ev => { if (ev.persisted) renderAll(); });
 })();
 </script>
 </body>
