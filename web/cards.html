@@ -70,7 +70,10 @@ a.back:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--dawn)}
 .hcard.sel{box-shadow:inset 0 0 0 2px var(--hc)}
 .hcard:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--dawn)}
 .hcard svg{width:100%;height:110px;display:block}
+.hcard .hbust{width:110px;height:110px;display:block;margin:0 auto;pointer-events:none}
 .hcard h3{margin:4px 0 0;font-family:var(--brush);font-size:28px;font-weight:400;color:var(--hc);line-height:1}
+.hcard h3.cn{font-size:25px;white-space:nowrap;letter-spacing:-.02em}
+.hcard .hstyle{font-size:12px;color:var(--hc);opacity:.85;margin-top:1px}
 .hcard .hp{font-size:12px;color:var(--paper-dim)}
 .hcard .mech{font-size:12.5px;margin-top:6px;color:var(--paper)}
 .hcard .mech b{color:var(--hc);font-weight:400}
@@ -79,6 +82,7 @@ a.back:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--dawn)}
 /* ---------- topbar ---------- */
 .topbar{display:flex;align-items:center;gap:8px;padding:8px 0 6px;font-size:13px;flex-wrap:nowrap;border-bottom:1px solid var(--line);min-height:44px}
 .topbar .tb-hp{color:#ff8a8f;white-space:nowrap}
+.topbar .tb-bust{width:28px;height:28px;flex:0 0 auto;display:block;margin-right:-2px}
 .topbar .tb-gold{color:var(--dawn);white-space:nowrap}
 .topbar .tb-floor{color:var(--paper-dim);white-space:nowrap}
 .topbar .tb-relics{display:flex;gap:3px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
@@ -139,8 +143,10 @@ a.back:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--dawn)}
 .st{display:inline-flex;align-items:center;gap:2px;font-size:11px;padding:1px 5px;background:rgba(7,8,26,.8);border:1px solid var(--line);cursor:help;line-height:16px}
 .st.buff{color:var(--dawn)}.st.debuff{color:var(--wisteria)}.st.power{color:#8fd6ff}.st.trait{color:#ff8a8f}
 #pbar{display:flex;align-items:center;gap:10px;padding:6px 4px;border-top:1px solid var(--line);position:relative}
-#pbar .pport{width:44px;height:44px;flex:0 0 auto;position:relative}
-#pbar .pport svg{width:100%;height:100%}
+#pbar .pport{width:52px;height:52px;flex:0 0 auto;position:relative}
+#pbar .pport svg,#pbar .pport img{width:100%;height:100%;display:block}
+#pbar .pport img{pointer-events:none}
+#pfig{position:absolute;left:0;bottom:0;z-index:2;pointer-events:none;display:none}
 #pbar.hit .pport{animation:hit .35s}
 #pbar .pmid{flex:1;min-width:0}
 #pbar .hpbar{max-width:none;height:14px}
@@ -220,6 +226,8 @@ a.back:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--dawn)}
   .enemy .ename{font-size:14px}
   .enemy{flex-basis:210px}.enemy.boss{flex-basis:320px}
   #tipstrip{font-size:13px}
+  #field.fig #pfig{display:block}
+  #field.fig #enemies{padding-left:170px}
 }
 
 /* ---------- generic panels ---------- */
@@ -371,6 +379,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
 <div id="menu" class="overlay" role="dialog" aria-modal="true"></div>
 <div id="banner"></div>
 <div id="toast" role="status"></div>
+<script src="kchars.js"></script>
 <script>
 'use strict';
 /* =========================================================
@@ -478,22 +487,22 @@ const RANKS = [
 
 const HUNTERS = {
   water: {
-    name: '물의 호흡 대원', hp: 75, mech: '흐름',
+    name: '카마도 탄지로', hp: 75, mech: '흐름',
     mechText: '한 턴에 3번째 카드를 쓰면 <b>방어 4</b>. <b>연계</b> 카드는 두 번째 이후에 쓰면 추가 효과.',
     deck: ['strike', 'strike', 'strike', 'strike', 'defend', 'defend', 'defend', 'defend', 'w_ripple', 'w_parry']
   },
   flame: {
-    name: '화염의 호흡 대원', hp: 80, mech: '열기',
+    name: '렌고쿠 쿄쥬로', hp: 80, mech: '열기',
     mechText: '<b>열기</b> 1마다 공격 피해 +1. 턴 종료 시 열기 1 감소. 열기를 태워 큰 일격.',
     deck: ['strike', 'strike', 'strike', 'strike', 'defend', 'defend', 'defend', 'defend', 'f_slash', 'f_heart']
   },
   thunder: {
-    name: '번개의 호흡 대원', hp: 70, mech: '일섬',
+    name: '아가츠마 젠이츠', hp: 70, mech: '일섬',
     mechText: '매 턴 첫 카드를 쓰면 <b>카드 1장</b>을 뽑습니다. 0비용 일섬과 <b>선수</b> 효과.',
     deck: ['strike', 'strike', 'strike', 'strike', 'defend', 'defend', 'defend', 'defend', 't_flash', 't_roar']
   },
   beast: {
-    name: '짐승의 호흡 대원', hp: 85, mech: '광란',
+    name: '하시비라 이노스케', hp: 85, mech: '광란',
     mechText: '적 공격으로 체력을 잃으면 <b>광란 +1</b> (타격마다 피해 +1). 연속 공격이 많습니다.',
     deck: ['strike', 'strike', 'strike', 'strike', 'defend', 'defend', 'defend', 'defend', 'b_fang', 'b_howl']
   }
@@ -1132,10 +1141,10 @@ function damagePlayer(amt, delay = 0) {
   r.hp = Math.max(0, r.hp - loss);
   setTimeout(() => {
     const pp = $('#pbar .pport');
-    if (loss > 0) { fxNumber(pp, loss, 'pdmg'); SND.play('hit'); flash($('#pbar'), 'hit'); shakeScreen(); }
+    if (loss > 0) { fxNumber(pp, loss, 'pdmg'); SND.play('hit'); flash($('#pbar'), 'hit'); shakeScreen(); pcharHurt(); }
     else { fxNumber(pp, '막음', 'blocked'); SND.play('block'); }
   }, delay);
-  if (r.hp <= 0) B.over = true;
+  if (r.hp <= 0) { B.over = true; setTimeout(pcharDown, delay + 120); }
   return loss;
 }
 function drawCards(n) {
@@ -1185,7 +1194,7 @@ function makeCtx(c, d) {
       return 0;
     },
     heal: n => healPlayer(n),
-    lose: n => { const r = R(); const l = Math.min(n, r.hp - 1); r.hp -= l; if (l > 0) fxNumber($('#pbar .pport'), l, 'pdmg'); },
+    lose: n => { const r = R(); const l = Math.min(n, r.hp - 1); r.hp -= l; if (l > 0) { fxNumber($('#pbar .pport'), l, 'pdmg'); pcharHurt(); } },
     execute: (t, dmg, pct) => {
       if (!t || t.dead) return;
       const th = pct + (has('dust') ? .1 : 0);
@@ -1220,6 +1229,7 @@ async function playCard(uid, targetUid) {
   renderBattle();
   SND.play('swish');
   await flyCard(c, rect, t, d);
+  if (d.type === 'atk') pcharAttack();
   const g = makeCtx(c, d);
   d.play(g, c.up, t);
   B.played++; if (d.type === 'atk') B.atkPlayed++;
@@ -1242,7 +1252,7 @@ async function playCard(uid, targetUid) {
 async function checkBattleEnd() {
   const B = S.B; if (!B) return true;
   if (R().hp <= 0) { B.over = true; S.busy = true; await sleep(900); S.busy = false; finishRun(false); return true; }
-  if (!alive().length) { B.over = true; S.busy = true; await sleep(1100); S.busy = false; battleWon(); return true; }
+  if (!alive().length) { B.over = true; S.busy = true; pcharWin(); await sleep(1100); S.busy = false; battleWon(); return true; }
   return false;
 }
 async function endTurn() {
@@ -1312,8 +1322,8 @@ function startPlayerTurn(first) {
   B.turn++; B.block = 0; B.played = 0; B.atkPlayed = 0;
   if (B.st.bleed) {
     const b = B.st.bleed; decStat(B.st, 'bleed');
-    r.hp = Math.max(0, r.hp - b); fxNumber($('#pbar .pport'), b, 'pdmg'); SND.play('hit');
-    if (r.hp <= 0) { B.over = true; renderBattle(); setTimeout(() => finishRun(false), 900); return; }
+    r.hp = Math.max(0, r.hp - b); fxNumber($('#pbar .pport'), b, 'pdmg'); SND.play('hit'); pcharHurt();
+    if (r.hp <= 0) { B.over = true; setTimeout(pcharDown, 120); renderBattle(); setTimeout(() => finishRun(false), 900); return; }
   }
   let en = B.maxEnergy + (B.st.p_focus || 0);
   if (has('sun') && B.turn % 3 === 0) en++;
@@ -1406,10 +1416,11 @@ function buildBattleDOM() {
   $('#enemies').innerHTML = '';
   $('#hand').innerHTML = '';
   const hunter = R().hunter;
-  $('#pbar').innerHTML = `<div class="pport" data-tip="${esc('<b>' + HUNTERS[hunter].name + '</b><br>' + HUNTERS[hunter].mechText)}">${hunterSVG(hunter, 'pp')}</div>
+  $('#pbar').innerHTML = `<div class="pport" data-tip="${esc('<b>' + HUNTERS[hunter].name + '</b> · ' + STYLE[hunter].name + '<br>' + HUNTERS[hunter].mechText)}">${portraitHTML(hunter, 'pp', 52, 'normal')}</div>
     <div class="blk" hidden></div>
     <div class="pmid"><div class="hpbar"><i></i><span></span></div><div class="stats"></div></div>
     <div class="energy" style="--sc:${STYLE[hunter].color}" data-tip="<b>호흡</b> 카드를 쓰는 데 드는 기력. 매 턴 다시 채워집니다."></div>`;
+  pcharReset(hunter);
 }
 function renderBattle() { if (!S.B) return; renderEnemies(); renderPlayer(); renderHand(); renderActions(); renderTopbar(); }
 function renderEnemies() {
@@ -1793,6 +1804,80 @@ function demonSVG(a, uid) {
   s += '</svg>';
   return s;
 }
+/* ----- character art (kchars.js): busts + battle figure; falls back to hunterSVG ----- */
+const KC = window.KChars || null;
+function charOf(style) { try { return KC && KC.byStyle ? KC.byStyle(style) : null; } catch (e) { return null; } }
+function bustURL(style, size, expr) {
+  const ch = charOf(style); if (!ch) return null;
+  const px = Math.round(size * Math.min(3, Math.max(2, window.devicePixelRatio || 1)));
+  try { return KC.bustDataURL(ch.id, px, { expr: expr || 'normal', bg: true }); } catch (e) { return null; }
+}
+function portraitHTML(style, sfx, size, expr, cls) {
+  const u = bustURL(style, size, expr);
+  return u ? `<img${cls ? ` class="${cls}"` : ''} src="${u}" width="${size}" height="${size}" alt="${esc(HUNTERS[style].name)}" draggable="false">` : hunterSVG(style, sfx);
+}
+const PCH = { style: null, expr: 'normal', lock: false, timer: 0, fig: null };
+const FIG_MQ = window.matchMedia ? matchMedia('(min-width:760px) and (min-height:640px)') : null;
+function pcharReset(style) {
+  clearTimeout(PCH.timer);
+  PCH.style = style; PCH.expr = 'normal'; PCH.lock = false;
+  if (charOf(style)) ['fierce', 'hurt', 'smile'].forEach(x => bustURL(style, 52, x)); // warm the cache
+  figSetup();
+}
+function pcharFace(expr, ms, lock) {
+  if (PCH.lock && !lock) return;
+  clearTimeout(PCH.timer);
+  PCH.expr = expr; if (lock) PCH.lock = true;
+  const img = $('#pbar .pport img'), u = PCH.style && bustURL(PCH.style, 52, expr);
+  if (img && u) img.src = u;
+  if (ms) PCH.timer = setTimeout(() => { if (!PCH.lock) pcharFace('normal'); }, ms);
+}
+function pcharAttack() { pcharFace('fierce', 750); const f = PCH.fig; if (f && !f.down) { f.swingT0 = performance.now(); figKick(); } }
+function pcharHurt() { pcharFace('hurt', 650); const f = PCH.fig; if (f && !f.down) { f.hurtT0 = performance.now(); figKick(); } }
+function pcharDown() { pcharFace('hurt', 0, true); const f = PCH.fig; if (f && !f.down) { f.down = performance.now(); figKick(); } }
+function pcharWin() { pcharFace('smile', 0, true); const f = PCH.fig; if (f) { f.win = true; f.swingT0 = 0; figKick(); } }
+
+/* full figure on wide screens (same breakpoint as the big-card layout) */
+function figSetup() {
+  const field = $('#field'), old = $('#pfig');
+  if (PCH.fig) { cancelAnimationFrame(PCH.fig.raf); clearTimeout(PCH.fig.idle); }
+  PCH.fig = null;
+  const ch = charOf(PCH.style);
+  const want = ch && S.B && S.screen === 'battle' && FIG_MQ && FIG_MQ.matches;
+  if (!want) { if (old) old.remove(); field.classList.remove('fig'); return; }
+  const h = innerWidth >= 1000 && innerHeight >= 760 ? 186 : 160;
+  const w = Math.round(h * 1.4), ch2 = Math.round(h * 1.22), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const c = old || document.createElement('canvas');
+  c.id = 'pfig'; c.setAttribute('aria-hidden', 'true');
+  c.width = Math.round(w * dpr); c.height = Math.round(ch2 * dpr);
+  c.style.width = w + 'px'; c.style.height = ch2 + 'px';
+  if (!old) field.appendChild(c);
+  field.classList.add('fig');
+  const ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  PCH.fig = { c, ctx, id: ch.id, h, w, ch2, x: Math.round(h * .6), y: ch2 - Math.round(h * .08), swingT0: 0, hurtT0: 0, down: 0, win: !!(S.B && S.B.over && !alive().length), raf: 0, idle: 0, t0: performance.now() };
+  figKick();
+}
+function figKick() { const f = PCH.fig; if (!f) return; clearTimeout(f.idle); cancelAnimationFrame(f.raf); f.raf = requestAnimationFrame(figDraw); }
+function figDraw(now) {
+  const f = PCH.fig; if (!f) return;
+  if (!f.c.isConnected || S.screen !== 'battle') { PCH.fig = null; return; }
+  const SW = 250, HU = 420, KN = 450;
+  const sw = f.swingT0 ? (now - f.swingT0) / SW : 2;
+  const hu = f.hurtT0 ? (now - f.hurtT0) / HU : 2;
+  const kn = f.down ? Math.min(1, (now - f.down) / KN) : 0;
+  const o = { facing: 1, t: (now - f.t0) / 1000 };
+  if (sw < 1.25) { o.swing = Math.min(1, Math.max(0, sw)); o.trail = sw <= 1; }
+  if (hu < 1) o.hurt = 1 - hu;
+  if (f.down) { o.kneel = kn; o.hurt = Math.max(o.hurt || 0, .35); o.expr = 'hurt'; }
+  else if (f.win) o.expr = 'smile';
+  f.ctx.clearRect(0, 0, f.w, f.ch2);
+  try { KC.drawFigure(f.ctx, f.id, f.x, f.y, f.h, o); } catch (e) { f.c.remove(); $('#field').classList.remove('fig'); PCH.fig = null; return; }
+  const animating = sw < 1.25 || hu < 1 || (f.down && kn < 1);
+  if (animating) f.raf = requestAnimationFrame(figDraw);
+  else f.idle = setTimeout(() => { f.raf = requestAnimationFrame(figDraw); }, 160);
+}
+if (FIG_MQ) { const onMq = () => { if (S.B && S.screen === 'battle') figSetup(); }; if (FIG_MQ.addEventListener) FIG_MQ.addEventListener('change', onMq); else if (FIG_MQ.addListener) FIG_MQ.addListener(onMq); }
+
 function hunterSVG(style, sfx) {
   const c = STYLE[style].color, id = 'h' + style + sfx;
   let pat = '';
@@ -1830,7 +1915,8 @@ function renderTopbar() {
   const r = R(); if (!r) return;
   const floor = (r.visited || []).length;
   const relics = r.relics.map(id => `<span class="relic" tabindex="0" data-tip="${esc('<b>' + RELICS[id].name + '</b><br>' + RELICS[id].desc)}">${RELICS[id].g}</span>`).join('');
-  const html = `<span class="tb-hp">체력 ${r.hp}/${r.maxHp}</span><span class="tb-gold">${r.gold}엔</span><span class="tb-floor">${r.act + 1}밤 ${floor}층</span>
+  const bu = S.screen !== 'battle' ? bustURL(r.hunter, 28, 'normal') : null;
+  const html = `${bu ? `<img class="tb-bust" src="${bu}" alt="${esc(HUNTERS[r.hunter].name)}" draggable="false">` : ''}<span class="tb-hp">체력 ${r.hp}/${r.maxHp}</span><span class="tb-gold">${r.gold}엔</span><span class="tb-floor">${r.act + 1}밤 ${floor}층</span>
     <div class="tb-relics">${relics}</div>
     <button class="iconbtn deckBtn" aria-label="덱 보기">덱 ${r.deck.length}</button>
     <button class="iconbtn muteBtn" aria-label="${SND.muted ? '소리 켜기' : '소리 끄기'}">${muteIcon()}</button>
@@ -1849,8 +1935,8 @@ function renderHunters() {
     const h = HUNTERS[k];
     const sig = h.deck.slice(8).map(id => CARDS[id].name).join(', ');
     return `<button class="hcard${S.hunterPick === k ? ' sel' : ''}" data-h="${k}" style="--hc:${STYLE[k].color}" aria-pressed="${S.hunterPick === k}">
-      ${hunterSVG(k, 'sel')}
-      <h3>${STYLE[k].name}</h3>
+      ${portraitHTML(k, 'sel', 110, 'normal', 'hbust')}
+      <h3${charOf(k) ? ' class="cn"' : ''}>${charOf(k) ? h.name : STYLE[k].name}</h3>${charOf(k) ? `<div class="hstyle">${STYLE[k].name}</div>` : ''}
       <div class="hp">체력 ${h.hp} · 고유: ${h.mech}</div>
       <div class="mech">${h.mechText}</div>
       <div class="hp" style="margin-top:4px">시작 카드: 베기 4, 막기 4, ${sig}</div>
@@ -2113,7 +2199,7 @@ function renderResult(r, won, sc, rk, best) {
     <h2 style="color:${won ? 'var(--dawn)' : 'var(--blood)'}">${won ? '새벽이 밝았다' : '어둠에 삼켜졌다'}</h2>
     <p class="pitch" style="margin:6px 0 0">${where}</p>
     <div class="rank">${rk[0]}</div>
-    <div class="ranklbl">계급 ${rk[0]} (${rk[1]}) · ${h.name}</div>
+    <div class="ranklbl">계급 ${rk[0]} (${rk[1]}) · ${h.name}<span style="opacity:.7"> (${STYLE[r.hunter].name})</span></div>
     <div class="stats-t">
       <span>오른 층 ${r.floors} × 10</span><span>${sc.floors}</span>
       <span>강한 혈귀 ${r.elites} × 25</span><span>${sc.elites}</span>

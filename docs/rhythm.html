@@ -91,7 +91,18 @@ p{margin:0}
 .song:hover{background:rgba(20,22,50,.85)}
 .song[aria-pressed="true"]{background:linear-gradient(90deg,var(--cbg),rgba(7,8,26,.85) 70%);box-shadow:inset 0 0 0 2px var(--c)}
 .song:focus-visible{outline:none;box-shadow:inset 0 0 0 3px var(--dawn)}
-.song-meta{font-size:13px;color:var(--c);letter-spacing:.04em}
+.song-meta{font-size:13px;color:var(--c);letter-spacing:.04em;grid-column:1;min-width:0}
+.song{grid-template-columns:minmax(0,1fr) auto;column-gap:10px}
+.song-title{grid-column:1}
+.song-meta .nw{white-space:nowrap}
+.song-desc,.song-best{grid-column:1/-1}
+.song-bust{grid-column:2;grid-row:1/span 2;align-self:center;width:56px;height:56px;display:block;filter:drop-shadow(0 0 6px rgba(7,8,26,.6))}
+.cast{display:flex;gap:14px;margin:-4px 0 -2px}
+.cast figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.cast img{width:52px;height:52px;display:block;border-radius:50%;box-shadow:0 0 0 2px var(--c),0 0 14px rgba(7,8,26,.7)}
+.cast figcaption{font-size:12px;color:var(--c);line-height:1.2}
+.res-bust{width:72px;height:72px;margin-left:auto;flex:none;display:block}
+.res-bust[hidden]{display:none}
 .song-title{font-size:36px;line-height:1.05;color:var(--paper)}
 .song-desc{font-size:14px;color:var(--paper-dim)}
 .song-best{font-size:14px;color:var(--paper);margin-top:4px}
@@ -173,6 +184,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
     <div style="flex:1"></div>
     <p class="eyebrow">전집중 리듬 액션</p>
     <h1 class="brush title">전집중 <span class="dot">·</span><br>호흡의 박자</h1>
+    <div class="cast" id="title-cast" aria-label="출연 대원"></div>
     <p class="pitch">박자에 맞춰 숨을 고르고 베어라. 정확할수록 강한 형이 나간다.</p>
     <ul class="howto">
       <li><span class="kbd">D</span><span class="kbd">F</span><span class="kbd">J</span><span class="kbd">K</span> 또는 방향키로 네 줄을 친다. 휴대폰은 화면 아래 네 칸을 누른다.</li>
@@ -255,6 +267,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
     <div class="rank-box">
       <span class="rank-char" id="res-rank">癸</span>
       <div><div class="rank-label" id="res-rank-label"></div><span class="tag" id="res-status"></span></div>
+      <img class="res-bust" id="res-bust" alt="" width="72" height="72" hidden>
     </div>
     <dl class="stats">
       <div class="stat wide"><dt>점수</dt><dd id="res-score">0</dd></div>
@@ -275,6 +288,7 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
   </div>
 </section>
 
+<script src="kchars.js"></script>
 <script>
 (function(){
 'use strict';
@@ -342,6 +356,20 @@ const SONGS=[
    dens:{A:'low',B:'mid',C:'mid'},prog:[0,1,3,2],demon:'뇌운 혈귀',desc:'쉬지 않고 몰아치는 빠른 곡. 눈보다 손이 먼저.',
    sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',8],['C',8],['B',8],['C',8],['outro',4]]}
 ];
+/* 곡마다 연주하는 대원 (kchars.js 공용 캐릭터). 라이브러리가 없으면 이름만 쓰고 기존 실루엣으로 그린다 */
+const PERF_FB={water:{id:'tanjiro',name:'카마도 탄지로',short:'탄지로'},flame:{id:'rengoku',name:'렌고쿠 쿄쥬로',short:'렌고쿠'},thunder:{id:'zenitsu',name:'아가츠마 젠이츠',short:'젠이츠'}};
+const KC=(window.KChars&&typeof window.KChars.drawFigure==='function')?window.KChars:null;
+const perfCache={};
+function performer(song){
+  const st=song.style;if(perfCache[st])return perfCache[st];
+  const f=PERF_FB[st];let e=null;
+  if(KC){try{e=KC.byStyle(st);}catch(err){e=null;}}
+  return perfCache[st]={id:e&&e.id||f.id,name:e&&e.name||f.name,short:f.short};
+}
+function bustURL(song,px,expr){
+  if(!KC||typeof KC.bustDataURL!=='function')return '';
+  try{return KC.bustDataURL(performer(song).id,Math.round(px),{expr:expr||'normal'})||'';}catch(e){return '';}
+}
 const DIFF={easy:'쉬움',normal:'보통',hard:'어려움'};
 const DIFF_KEYS=['easy','normal','hard'];
 const JW={perfect:.045,good:.09,ok:.135};
@@ -1113,11 +1141,19 @@ function drawScene(){
   drawGround();
   // 대원
   const Hh=heroPos(), hs=Hh.s, hu=hs/100;
-  const hurtA=Math.max(0,1-(vt-h.hurtT)/.28), knock=hurtA*-8;
-  blitFigure(hunterOff,Hh.x+knock,Hh.y,hs*2.2,hs*1.9,hs*1.1,hs*1.6,g=>{g.scale(hu,hu);drawHunterShape(g,h,vt,col,style);},'#d8343f',hurtA*.7,0,1);
-  // 칼 궤적
+  const hurtA=clamp(1-(vt-h.hurtT)/.28,0,1), knock=hurtA*-8;
   const since=vt-h.slashT;
-  if(since<.16){
+  let kcOK=false;
+  if(KC){
+    // 베기 진행도: 평소 0.2초에 0→1, 마무리는 돌진 중 치켜들었다가 베고 나서 자세 유지
+    let sw=null;
+    if(play.phase==='finish')sw=play.finSlash?clamp(since/.28,0,1):0;
+    else if(since>=0&&since<.2)sw=.08+since/.2*.92;
+    try{KC.drawFigure(ctx,play.perf.id,Hh.x+knock,Hh.y,Math.round(hs),{facing:1,t:vt,swing:sw,hurt:hurtA,kneel:clamp(h.kneel,0,1),trail:true});kcOK=true;}catch(e){kcOK=false;}
+  }
+  if(!kcOK)blitFigure(hunterOff,Hh.x+knock,Hh.y,hs*2.2,hs*1.9,hs*1.1,hs*1.6,g=>{g.scale(hu,hu);drawHunterShape(g,h,vt,col,style);},'#d8343f',hurtA*.7,0,1);
+  // 칼 궤적 (기존 실루엣일 때만. KChars는 자체 궤적을 그린다)
+  if(!kcOK&&since<.16){
     const sx=Hh.x+knock+5*hu, sy=Hh.y+(-69+h.kneel*14)*hu;
     ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1-since/.16;ctx.strokeStyle=col;ctx.lineWidth=5*hu+1;ctx.lineCap='round';
     ctx.beginPath();ctx.arc(sx,sy,74*hu,Math.min(h.from,h.arm),Math.max(h.from,h.arm));ctx.stroke();ctx.restore();ctx.globalAlpha=1;
@@ -1165,7 +1201,7 @@ function startGame(songIdx,diff){
     nextIdx:0,drawIdx:0,gtNow:-9,score:0,combo:0,maxCombo:0,counts:{perfect:0,good:0,ok:0,miss:0},
     unitsTotal:units,unitsJudged:0,accSum:0,hp:100,demonMax:Math.max(10,units*.92),demonHP:Math.max(10,units*.92),
     missDmg:{easy:5,normal:7,hard:9}[diff],noFail:settings.noFail,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
-    lastNoteT:lastT,lastBeat:-99,specials:0,failed:false,victory:false,finSlash:false,lastSlashFx:-9,holdSpark:0};
+    perf:performer(song),lastNoteT:lastT,lastBeat:-99,specials:0,failed:false,victory:false,finSlash:false,lastSlashFx:-9,holdSpark:0};
   resetScene();jd=null;comboPop=0;flashA=0;hurtV=0;shakeA=0;
   for(const s of laneSrc)s.clear();
   mode='game';menuSunrise=0;
@@ -1252,7 +1288,7 @@ function demonAttack(){
 function special(){
   const P=play,st=STYLE[P.song.style];P.specials++;
   const k=(P.specials-1)%6;
-  callout={t0:vt,dur:1.5,big:'제'+(k+1)+'형',sub:st.name+' · '+st.moves[k],col:P.color};
+  callout={t0:vt,dur:1.5,big:'제'+(k+1)+'형',sub:P.perf.short+' · '+st.name+' · '+st.moves[k],col:P.color};
   P.demonHP=Math.max(0,P.demonHP-15);
   scene.h.dashT=vt;scene.d.hitT=vt+.1;
   specialFx();flashA=.35;flashCol=P.color;if(!reduceMotion)shakeA=Math.max(shakeA,9);
@@ -1367,7 +1403,9 @@ function toResult(){
     lsSet('rhythm:best',bestRec);isNew=true;
   }
   const b=bestRec[key];
-  $('#res-song').textContent=P.song.title+' · '+DIFF[P.diff]+' · '+STYLE[P.song.style].name;
+  $('#res-song').textContent=P.song.title+' · '+DIFF[P.diff]+' · '+P.perf.name+' · '+STYLE[P.song.style].name;
+  const rb=$('#res-bust'),rbSrc=bustURL(P.song,144,P.failed?'hurt':P.victory?'smile':'normal');
+  if(rbSrc){rb.src=rbSrc;rb.alt=P.perf.name;rb.hidden=false;}else{rb.hidden=true;rb.removeAttribute('src');}
   $('#res-head').textContent=P.failed?'집중이 끊겼다':P.victory?'혈귀를 베었다':'혈귀가 달아났다';
   $('#res-sub').textContent=P.failed?'집중력이 바닥났다. 기록은 남지 않는다.':P.victory?P.song.demon+'가 재가 되어 흩어졌다.':'혈귀의 체력을 다 깎지 못했다. 더 정확히 베어라.';
   $('#res-rank').textContent=rk[1];
@@ -1632,7 +1670,9 @@ SONGS.forEach((s,i)=>{
   const comp=getComp(s),c=STYLE[s.style].color;
   const b=document.createElement('button');b.className='song';b.dataset.i=i;
   b.style.setProperty('--c',c);b.style.setProperty('--cbg',rgba(c,.2));
-  b.innerHTML='<span class="song-meta">'+STYLE[s.style].name+' · '+s.bpm+' BPM · '+fmtTime(comp.totalBeats*comp.spb)+'</span>'+
+  const pf=performer(s),bu=bustURL(s,112,'normal');
+  b.innerHTML=(bu?'<img class="song-bust" src="'+bu+'" alt="'+pf.name+'" width="56" height="56">':'')+
+    '<span class="song-meta"><span class="nw">'+pf.name+' ·</span> <span class="nw">'+STYLE[s.style].name+' · '+s.bpm+' BPM · '+fmtTime(comp.totalBeats*comp.spb)+'</span></span>'+
     '<span class="song-title brush">'+s.title+'</span><span class="song-desc">'+s.desc+'</span><span class="song-best"></span>';
   b.addEventListener('click',()=>{selectSong(i,false);sfx('ui');});
   b.addEventListener('dblclick',()=>startGame(settings.song,settings.diff));
@@ -1748,6 +1788,16 @@ function frame(ts){
 window.addEventListener('resize',resize);
 window.addEventListener('orientationchange',()=>setTimeout(resize,150));
 resize();
+(function renderCast(){
+  const el=$('#title-cast');
+  for(const s of SONGS){
+    const pf=performer(s),u=bustURL(s,112,'normal');if(!u)continue;
+    const f=document.createElement('figure');f.style.setProperty('--c',STYLE[s.style].color);
+    f.innerHTML='<img src="'+u+'" alt="" width="52" height="52"><figcaption>'+pf.short+'</figcaption>';
+    el.appendChild(f);
+  }
+  if(!el.children.length)el.remove();else el.setAttribute('role','img'),el.setAttribute('aria-label','출연 대원: '+SONGS.map(s=>performer(s).name).join(', '));
+})();
 renderTitleBest();renderSelect();syncSettingsUI();updateMuteBtn();
 if(document.fonts&&document.fonts.load){document.fonts.load('40px "Nanum Brush Script"').catch(()=>{});}
 requestAnimationFrame(frame);
