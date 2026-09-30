@@ -237,7 +237,21 @@
       ell(ctx, lx, EH * 0.2, EW * c.pupil, EH * c.pupil * 1.3); ctx.fillStyle = c.pupilCol; ctx.fill();
       ell(ctx, lx - side * EW * 0.28, -EH * 0.25, EW * 0.25, EH * 0.23); ctx.fillStyle = c.eyeHi || '#fff'; ctx.fill();
       if (!LOD) { ell(ctx, lx + side * EW * 0.3, EH * 0.52, EW * 0.11, EH * 0.1); ctx.fill(); }
+      var sleepy = c.sleepy && expr === 'normal';
+      if (sleepy) {
+        // heavy, half-closed upper lid (zenitsu's usual sleepy look)
+        ctx.fillStyle = c.skin || SKIN; ctx.fillRect(-EW * 1.6, -EH * 1.7, EW * 3.2, EH * 1.62);
+        ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(-EW * 1.6, -EH * 0.14, EW * 3.2, EH * 0.2);
+      }
       ctx.restore();
+      if (sleepy) {
+        ctx.save(); ctx.beginPath(); ctx.rect(-EW * 2, -EH * 0.08, EW * 4, EH * 3); ctx.clip();
+        eyeShape(ctx, sl); stroke(ctx, 0.8); ctx.restore();
+        ctx.beginPath(); ctx.moveTo(-EW * 1.04, -EH * 0.02); ctx.quadraticCurveTo(0, -EH * 0.2, EW * 1.08, -EH * 0.1);
+        stroke(ctx, LOD ? 1.8 : 2.4);
+        ctx.restore();
+        return;
+      }
       eyeShape(ctx, sl); stroke(ctx, 0.8);
       eyeLid(ctx, sl); stroke(ctx, LOD ? 1.6 : 2.2);
       if (!LOD) {
@@ -441,6 +455,7 @@
       ctx.lineWidth = 0.13; ctx.strokeStyle = '#ffb52a'; ctx.stroke();
     },
     browY: 0.02,
+    sleepy: true,   // 'normal' face uses half-closed sleepy eyes
     mouth: 'worry',
     haori: function (ctx, x0, y0, x1, y1, hem, sc, fsc) { patTriangles(ctx, x0, y0, x1, y1, (fsc ? 0.34 : 0.42) * (sc || 1)); },
     sleeve: '#ffb12e',

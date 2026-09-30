@@ -430,7 +430,7 @@ const RR=['계','임','신','경','기','무','정','병','을','갑','주'];
 const RCUT=[0,.12,.22,.32,.42,.52,.62,.71,.8,.88,.95];
 const RANK_SHIFT={easy:2,normal:1,hard:0};
 function rankIdx(ratio,diff){let r=0;RCUT.forEach((c,i)=>{if(ratio>=c)r=i;});return Math.max(0,r-(RANK_SHIFT[diff]||0));}
-const JW={jumpEarly:.4,jumpLate:.24,slashEarly:.22,slashLate:.18,collect:.3,perfect:.075,good:.14};
+const JW={jumpEarly:.4,jumpLate:.24,slashEarly:.35,slashLate:.26,collect:.3,perfect:.075,good:.14};
 const BASE={perfect:100,good:70,ok:40};
 const JTXT={perfect:'완벽!',good:'좋아!',ok:'아슬아슬!'};
 const JCOL={perfect:'#f2b24a',good:'#c9b6f2',ok:'#efe6d2'};
@@ -1188,7 +1188,7 @@ function startGame(songIdx){
     songT0:actx.currentTime+1.3+3*spb,gtNow:-9,wb:-9,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
     char:ch,practice:settings.practice,hearts:maxH,maxHearts:maxH,invuln:0,score:0,scoreShown:0,combo:0,maxCombo:0,comboPop:0,
     counts:{perfect:0,good:0,ok:0,miss:0},collected:0,collectStep:0,jumpT0:-9,jumpGt:-99,air:Math.min(1,clamp(spb*1.3,.62,.85)*pk.airMul),wasAir:false,
-    slashT:-9,boostEnd:-99,boostOff:0,boostGrace:-9,crouchUntil:-9,crouchHeld:false,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9,revives:0};
+    slashT:-9,slashZoneUntil:-9,slashGt:-99,boostEnd:-99,boostOff:0,boostGrace:-9,crouchUntil:-9,crouchHeld:false,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9,revives:0};
   parts=[];pops=[];arcs=[];callout=null;shakeA=0;flashA=0;
   mode='game';
   showScreen('scr-game');updateMuteBtn();
@@ -1259,9 +1259,9 @@ function doJump(ts){
 function doSlash(ts){
   if(!canAct())return;
   const P=play;btnFlash[1]=1;
-  P.slashT=vt;sfx('slash');
+  P.slashT=vt;P.slashZoneUntil=vt+.32;sfx('slash');
   arcs.push({t0:vt,x:heroX+figH*.25,y:groundY-heroAirH()-figH*.55,col:P.char.color});
-  const gt=gameTimeAt(ts);
+  const gt=gameTimeAt(ts);P.slashGt=gt;
   let best=null,bd=9;
   for(const it of P.items){
     if(it.t>gt+JW.slashEarly)break;
@@ -1321,7 +1321,8 @@ function collect(it,grade){
 }
 function missItem(it){
   const P=play;it.state=2;it.rt=vt;P.counts.miss++;P.combo=0;
-  P.hurtV=1;popup('아야!',heroX,groundY-heroAirH()-figH*1.35,'#ff8fab',28);sfx('bonk');
+  const tip=it.act==='jump'?'점프해요!':it.kind==='flyer'?'숙이거나 베요!':'베거나 뛰어넘어요!';
+  P.hurtV=1;popup('아야! '+tip,heroX+figH*.4,groundY-heroAirH()-figH*1.35,'#ff8fab',26,1.1);sfx('bonk');
   if(!reduceMotion)shakeA=Math.max(shakeA,7);flashA=.25;flashCol='#d8343f';
   spawn(heroX+figH*.2,groundY-figH*.5,8,{sp:120,col:['#ffffff','#ff8fab'],life:.4,sz:figH*.04,k:'star',drag:3});
   if(!P.practice&&vt>=P.invuln){
@@ -1384,7 +1385,14 @@ function updateGame(dt){
       }else if(it.act==='jump'&&d>=-.06&&heroAirH()>figH*.12){
         // 장애물이 지나가는 순간 공중에 떠 있으면 넘은 것으로 친다 (일찍 뛰어도 OK). 판정은 누른 시각 기준
         hitItem(it,gradeOf(Math.abs(P.jumpGt-it.t)));
-      }else if(it.act==='slash'&&it.kind!=='flyer'&&d>=-.06&&heroAirH()>figH*.3){
+      }else if(it.act==='slash'&&vt<P.slashZoneUntil&&d>=-.3){
+        // 칼을 휘두른 직후 0.3초 동안은 칼끝 앞에 들어온 혈귀를 벤다 (조금 일찍 눌러도 OK)
+        hitItem(it,gradeOf(Math.abs(P.slashGt-it.t)));
+      }else if(it.act==='slash'&&it.kind==='flyer'&&d>=-.08&&heroAirH()>figH*.12){
+        // 점프하다 박쥐 혈귀와 만나면 공중에서 자동으로 벤다
+        P.slashT=vt;arcs.push({t0:vt,x:heroX+figH*.25,y:groundY-heroAirH()-figH*.55,col:P.char.color});sfx('slash');
+        hitItem(it,'good');
+      }else if(it.act==='slash'&&it.kind!=='flyer'&&d>=-.06&&heroAirH()>figH*.12){
         // 땅의 동그란 혈귀는 점프로 넘어도 OK
         dodgeItem(it,'훌쩍!');
       }else if(it.act==='slash'&&it.kind==='flyer'&&d>=-.08&&crouching()){
