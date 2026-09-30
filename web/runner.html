@@ -211,7 +211,9 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
     <p class="pitch">음악에 맞춰 달리고 뛰고 베자!<br>박자에 맞추면 더 멀리 간다.</p>
     <ul class="howto">
       <li>통이나 돌이 오면 <b>점프!</b> 화면 왼쪽 누르기 · <span class="kbd">Space</span></li>
-      <li>혈귀가 오면 <b>베기!</b> 화면 오른쪽 누르기 · <span class="kbd">J</span></li>
+      <li>혈귀가 오면 <b>베기!</b> 화면 오른쪽 누르기 · <span class="kbd">J</span> (점프로 넘어도 돼요)</li>
+      <li>반짝이는 <b>질풍 부적</b>을 먹으면 앞으로 휙! 잠깐 동안 모두 부수고 먹으며 달려요.</li>
+      <li>날아오는 박쥐 혈귀는 <b>숙이기!</b> 가운데 아래 버튼 · <span class="kbd">↓</span> <span class="kbd">S</span></li>
       <li>하늘의 등꽃과 주먹밥은 점프해서 모아요. 주먹밥은 하트를 채워 줘요.</li>
     </ul>
     <div class="who" id="title-who" hidden><span id="title-badge"></span><a href="index.html#profiles">대원 바꾸기</a></div>
@@ -558,6 +560,7 @@ function buildChart(song){
   }
   const fl=items.filter(i=>i.kind==='flower'&&!i.attach&&i.b>8);
   for(const f of [.4,.78]){const it=fl[Math.floor(fl.length*f)];if(it)it.kind='rice';}
+  for(const f of [.22,.6]){let k=Math.floor(fl.length*f);while(fl[k]&&fl[k].kind!=='flower')k++;if(fl[k])fl[k].kind='boost';}
   items.sort((a,b)=>a.b-b.b);
   let combo=0,max=0,haz=0;
   for(const it of items){combo++;max+=(it.act==='collect'?(it.kind==='rice'?80:50):100)*multOf(combo);if(it.act!=='collect')haz++;}
@@ -1059,6 +1062,17 @@ function drawFlower(x,y,s,t,jit){
       ctx.fillStyle=mixHex('#efe8ff','#7a58c8',p*.9);ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.fill();
       ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(px-r*.3,py-r*.3,r*.3,0,TAU);ctx.fill();}}
 }
+function drawBoost(x,y,s,t,jit){
+  const bob=Math.sin(t*4+jit*9)*s*.05,yy=y+bob,r=s*.17,pul=.5+.5*Math.sin(t*8);
+  glow('#f2b24a',x,yy,s*(.42+.1*pul),.75);
+  ctx.save();ctx.translate(x,yy);ctx.rotate(Math.sin(t*3)*.12);ctx.lineJoin='round';ctx.lineWidth=Math.max(1.5,s*.018);ctx.strokeStyle=OUT;
+  ctx.fillStyle='#fff3c4';ctx.beginPath();ctx.rect(-r*.62,-r,r*1.24,r*2);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#d8343f';ctx.fillRect(-r*.62,-r,r*1.24,r*.28);ctx.strokeRect(-r*.62,-r,r*1.24,r*.28);
+  ctx.fillStyle='#f2b24a';ctx.beginPath();ctx.moveTo(-r*.4,-r*.45);ctx.lineTo(r*.05,-r*.45);ctx.lineTo(-r*.12,r*.05);ctx.lineTo(r*.4,r*.05);ctx.lineTo(-r*.15,r*.8);ctx.lineTo(0,r*.25);ctx.lineTo(-r*.4,r*.25);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='rgba(255,236,170,'+(.4+.4*pul).toFixed(2)+')';ctx.lineWidth=2;
+  for(let i=0;i<3;i++){const ly=yy-s*.1+i*s*.1;ctx.beginPath();ctx.moveTo(x+s*.25,ly);ctx.lineTo(x+s*(.45+.1*i),ly);ctx.stroke();}
+}
 function drawRice(x,y,s,t,jit){
   const bob=Math.sin(t*3+jit*9)*s*.04,yy=y+bob,r=s*.15;
   glow('#fff2c8',x,yy,s*.34,.6);
@@ -1159,7 +1173,7 @@ function drawArcs(){
    8. 게임 상태
    ===================================================================== */
 let mode='menu',play=null,vt=0,lastCfg={song:0};
-const btnFlash=[0,0];
+const btnFlash=[0,0,0];
 function startGame(songIdx){
   stopPlay();
   if(!initAudio()){$('#song-start').textContent='이 브라우저는 소리를 낼 수 없어요';return;}
@@ -1174,7 +1188,7 @@ function startGame(songIdx){
     songT0:actx.currentTime+1.3+3*spb,gtNow:-9,wb:-9,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
     char:ch,practice:settings.practice,hearts:maxH,maxHearts:maxH,invuln:0,score:0,scoreShown:0,combo:0,maxCombo:0,comboPop:0,
     counts:{perfect:0,good:0,ok:0,miss:0},collected:0,collectStep:0,jumpT0:-9,jumpGt:-99,air:Math.min(1,clamp(spb*1.3,.62,.85)*pk.airMul),wasAir:false,
-    slashT:-9,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9};
+    slashT:-9,boostEnd:-99,boostOff:0,boostGrace:-9,crouchUntil:-9,crouchHeld:false,hurtV:0,kneel:0,failVel:0,lastBeatInt:-99,endT:(comp.totalBeats-2)*spb,heartLost:-9,heartGain:-9};
   parts=[];pops=[];arcs=[];callout=null;shakeA=0;flashA=0;
   mode='game';
   showScreen('scr-game');updateMuteBtn();
@@ -1207,6 +1221,21 @@ function itemX(it){return hitX+(it.b-play.wb)*ppb;}
 function itemY(it){return it.kind==='flyer'?groundY-figH*.82:it.air?groundY-figH*1.32:groundY;}
 function gradeOf(ad){return ad<=JW.perfect?'perfect':ad<=JW.good?'good':'ok';}
 function canAct(){const P=play;return P&&!P.paused&&P.phase==='play';}
+/* 숙이기: 누르고 있는 동안(키 · 버튼) + 짧게 눌러도 0.5초는 숙인다. 공중에서는 숙이지 않는다 */
+function crouching(){const P=play;return !!P&&(P.crouchHeld||vt<P.crouchUntil)&&heroAirH()===0;}
+function doCrouch(){
+  if(!canAct())return;
+  const P=play;btnFlash[2]=1;
+  if(!crouching())sfx('land');
+  P.crouchUntil=vt+.5;
+}
+/* 피해서 지나가기 (점프로 혈귀 넘기 · 숙여서 박쥐 혈귀 피하기): 부수지 않고 그냥 지나가게 둔다 */
+function dodgeItem(it,txt){
+  const P=play;it.state=3;it.rt=vt;it.grade='good';
+  P.counts.good++;addScore(40);
+  popup(txt,heroX+figH*.3,groundY-heroAirH()-figH*1.35,'#9fe0ff',28);
+  sfx('clear','good');
+}
 
 function doJump(ts){
   if(!canAct())return;
@@ -1258,8 +1287,28 @@ function hitItem(it,grade){
   }
   if(grade==='perfect'){flashA=.12;flashCol=P.char.color;}
 }
+/* 질풍 부적(부스터): 몇 박 동안 앞으로 휙 달려 나가며 앞의 모든 것을 부수고 먹는다. 음악 박자는 그대로 */
+const BOOST_BEATS=8;
+function boosting(){const P=play;return !!P&&P.phase==='play'&&P.gtNow<P.boostEnd;}
+function startBoost(it){
+  const P=play;addScore(100);
+  P.boostEnd=Math.max(P.boostEnd,P.gtNow)+BOOST_BEATS*P.spb;P.invuln=Math.max(P.invuln,vt+.3);
+  const x=itemX(it),y=itemY(it);
+  spawn(x,y,24,{sp:260,col:['#fff6b0','#f2b24a','#ffffff',P.char.color],life:.7,sz:figH*.05,k:'star',drag:2.2});
+  callout={t0:vt,dur:1.4,big:'질풍 질주!',sub:'잠깐 동안 무엇에도 부딪히지 않아요',col:'#f2b24a'};
+  flashA=.3;flashCol='#f2b24a';sfx('rice');sfx('jump');
+}
+function boostSmash(it){
+  const P=play;it.state=1;it.rt=vt;it.grade='perfect';it.smash=it.act==='jump';P.counts.perfect++;addScore(BASE.perfect);
+  const x=itemX(it),y=it.act==='slash'?(it.kind==='flyer'?itemY(it):groundY-figH*.26):groundY-figH*.2;
+  spawn(x,y,14,{sp:240,col:['#fff6b0','#f2b24a','#ffffff',P.char.color],life:.5,sz:figH*.05,k:'star',drag:2.5});
+  if(it.act==='slash')spawn(x,y,10,{sp:60,vy:-50,col:['#6b6478','#8a8296','#4a4454'],life:1,sz:figH*.045,k:'ash',g:-30,drag:1.2,jx:figH*.3,jy:figH*.3});
+  popup('쾅!',x,y-figH*.4,'#fff6b0',26,.6);sfx('pop','perfect');
+  if(!reduceMotion)shakeA=Math.max(shakeA,3);
+}
 function collect(it,grade){
   const P=play;it.state=1;it.rt=vt;P.collected++;
+  if(it.kind==='boost'){startBoost(it);return;}
   const rice=it.kind==='rice';
   addScore(rice?80:50);
   const x=itemX(it),y=itemY(it);
@@ -1321,19 +1370,32 @@ function updateGame(dt){
   const gt=P.gtNow;
   if(P.phase==='play'){
     for(const it of P.items){
-      if(it.t>gt+.5)break;
+      if(it.t>gt+.5+(boosting()?(P.boostOff/ppb+1)*P.spb:0))break;
       if(it.state)continue;
       const d=gt-it.t;
+      if(boosting()&&itemX(it)<=heroX+P.boostOff+figH*.45){if(it.act==='collect')collect(it,'perfect');else boostSmash(it);continue;}
       if(it.act==='collect'){
-        if(d>=-.1&&d<=.14&&heroAirH()>figH*.35){collect(it,'good');continue;}
+        // 점프해서 먹거나, 숙인 채로 지나가도 먹는다
+        if(d>=-.1&&d<=.14&&(heroAirH()>figH*.35||crouching())){collect(it,'good');continue;}
         if(d>JW.collect)it.state=2;
       }else if(it.act==='jump'&&d>=-.06&&heroAirH()>figH*.12){
         // 장애물이 지나가는 순간 공중에 떠 있으면 넘은 것으로 친다 (일찍 뛰어도 OK). 판정은 누른 시각 기준
         hitItem(it,gradeOf(Math.abs(P.jumpGt-it.t)));
-      }else if(d>(it.act==='jump'?JW.jumpLate:JW.slashLate)){missItem(it);if(P.phase!=='play')break;}
+      }else if(it.act==='slash'&&it.kind!=='flyer'&&d>=-.06&&heroAirH()>figH*.3){
+        // 땅의 동그란 혈귀는 점프로 넘어도 OK
+        dodgeItem(it,'훌쩍!');
+      }else if(it.act==='slash'&&it.kind==='flyer'&&d>=-.08&&crouching()){
+        // 날아오는 박쥐 혈귀는 숙여서 피해도 OK
+        dodgeItem(it,'휙!');
+      }else if(d>(it.act==='jump'?JW.jumpLate:JW.slashLate)){if(boosting()||vt<P.boostGrace){boostSmash(it);continue;}missItem(it);if(P.phase!=='play')break;}
     }
     if(P.phase==='play'&&gt>P.endT)startFinish();
   }else if(P.phase==='finish'&&vt-P.phaseT>2.8){finishRun(true);return;}
+  // 질풍 질주: 앞으로 달려 나갔다가 부드럽게 제자리로
+  {const on=boosting(),tgt=on?Math.min(figH*1.5,W*.28):0;
+   if(P.wasBoost&&!on)P.boostGrace=vt+.6;P.wasBoost=on;
+   P.boostOff+=(tgt-P.boostOff)*Math.min(1,dt*(on?5:3));
+   if(on&&!reduceMotion&&Math.random()<.6)spawn(W+10,groundY-figH*(.2+Math.random()*1.4),1,{sp:0,vx:-W*2.2,col:'rgba(255,246,200,.8)',life:.35,sz:figH*.03,k:'dot'});}
   // 달리기 먼지 · 착지
   const air=heroAirH();
   if(P.wasAir&&air===0){spawn(heroX,groundY,7,{sp:70,ang:Math.PI,spread:2.4,col:'rgba(220,210,190,.9)',life:.45,sz:figH*.06,k:'dust',drag:3});sfx('land');}
@@ -1342,7 +1404,7 @@ function updateGame(dt){
   if(bi!==P.lastBeatInt){P.lastBeatInt=bi;if(air===0&&P.phase!=='fail')spawn(heroX-figH*.1,groundY-2,2,{sp:40,ang:Math.PI+.3,spread:.8,col:'rgba(220,210,190,.8)',life:.35,sz:figH*.035,k:'dust',drag:3});}
   P.hurtV=Math.max(0,P.hurtV-dt*2);P.comboPop=Math.max(0,P.comboPop-dt*4);
   P.scoreShown+=(P.score-P.scoreShown)*Math.min(1,dt*10);
-  btnFlash[0]=Math.max(0,btnFlash[0]-dt*5);btnFlash[1]=Math.max(0,btnFlash[1]-dt*5);
+  btnFlash[0]=Math.max(0,btnFlash[0]-dt*5);btnFlash[1]=Math.max(0,btnFlash[1]-dt*5);btnFlash[2]=Math.max(0,btnFlash[2]-dt*5);if(play&&play.crouchHeld)btnFlash[2]=Math.max(btnFlash[2],.6);
   updateFx(dt);
 }
 function drawGame(){
@@ -1368,6 +1430,9 @@ function drawGame(){
     const y=itemY(it);
     if(it.act==='jump'){
       const k=it.state===2?Math.min(1,(vt-it.rt)/.35):0;
+      if(it.smash){ // 질풍 질주로 날려 버린 장애물: 빙글 돌며 날아가 사라짐
+        const q=vt-it.rt;if(q>.7)continue;
+        ctx.save();ctx.globalAlpha=Math.max(0,1-q/.7);drawObstacle(it.kind,x+q*s*2.5,groundY-Math.sin(Math.min(1,q/.7)*Math.PI)*s*.9,s,q*9,0);ctx.restore();continue;}
       drawObstacle(it.kind,x,groundY,s,it.state===2?-k*.5:0,it.state===2?Math.max(0,1-(vt-it.rt)*2):0);
     }else if(it.act==='slash'){
       if(it.state===1)continue;
@@ -1377,15 +1442,20 @@ function drawGame(){
       else{const hy=hop*s*.08;drawCuteDemon(x+dx,groundY-s*.24-hy+dy,s,it.jit,vt,false,al,{gy:groundY,sy:hy<1?sq:1});}
     }else{
       if(it.state===1)continue;
-      if(it.kind==='rice')drawRice(x,y,s,vt,it.jit);else drawFlower(x,y,s,vt,it.jit);
+      if(it.kind==='rice')drawRice(x,y,s,vt,it.jit);else if(it.kind==='boost')drawBoost(x,y,s,vt,it.jit);else drawFlower(x,y,s,vt,it.jit);
     }
   }
   // 대원
-  const air=heroAirH(),blink=P.phase==='play'&&vt<P.invuln&&Math.floor(vt*12)%2===0;
-  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(heroX,groundY+2,figH*.26*(1-air/figH*.4),figH*.05,0,0,TAU);ctx.fill();
+  const air=heroAirH(),bst=boosting(),blink=!bst&&P.phase==='play'&&vt<P.invuln&&Math.floor(vt*12)%2===0;
+  const hx=heroX+P.boostOff;
+  if(P.boostOff>2){ // 잔상 + 금빛 오라
+    for(let k=3;k>=1;k--)drawHeroFigure(P.char.id,hx-k*figH*.28,groundY-air,figH,{facing:1,t:vt,walk:frac(P.wb*.5),alpha:.12*(4-k)*Math.min(1,P.boostOff/(figH*.5)),trail:false});
+    glow('#f2b24a',hx,groundY-air-figH*.5,figH*.9,.35*Math.min(1,P.boostOff/(figH*.5)));
+  }
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(hx,groundY+2,figH*.26*(1-air/figH*.4),figH*.05,0,0,TAU);ctx.fill();
   const sw=vt-P.slashT<.24?clamp((vt-P.slashT)/.2,0,1):null;
   const fin=P.phase==='fail';
-  drawHeroFigure(P.char.id,heroX,groundY-air,figH,{facing:1,t:vt,walk:fin?null:(air>0?.3:frac(P.wb*.5)),swing:fin?null:sw,hurt:P.hurtV,kneel:P.kneel,alpha:blink?.45:1,trail:true});
+  drawHeroFigure(P.char.id,hx,groundY-air,figH,{facing:1,t:vt,walk:fin?null:(air>0?.3:frac(P.wb*.5)),swing:fin?null:sw,hurt:P.hurtV,kneel:Math.max(P.kneel,!fin&&crouching()?.8:0),alpha:blink?.45:1,trail:true});
   drawArcs();
   drawParts();
   ctx.restore();
@@ -1447,22 +1517,27 @@ function drawHUD(gb,pulse){
   ctx.fillStyle='#f2b24a';ctx.fillRect(x1-2,py-10,2,17);ctx.beginPath();ctx.moveTo(x1,py-10);ctx.lineTo(x1-12,py-6);ctx.lineTo(x1,py-2);ctx.closePath();ctx.fill();
   ctx.restore();
 }
+/* 가운데 숙이기 버튼: 양옆 버튼과 겹치지 않는 크기 */
+function crouchR(){return Math.max(26,Math.min(btnR*.85,(W/2-(btnR*2+14+safeL))-10));}
+function crouchHit(x,y){const r=crouchR(),cy=H-btnR-14-safeB;return Math.hypot(x-W/2,y-cy)<=r*1.15;}
 function drawButtons(){
   const P=play;if(P.phase!=='play')return;
-  const r=btnR,y=H-r-14-safeB,xs=[r+14+safeL,W-r-14-safeR],labels=['점프','베기'],keys=['Space · ↑','J · →'];
+  const r=btnR,y=H-r-14-safeB,xs=[r+14+safeL,W-r-14-safeR,W/2],labels=['점프','베기','숙이기'],keys=['Space · ↑','J · →','S · ↓'];
   ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
-  for(let i=0;i<2;i++){
-    const f=btnFlash[i],x=xs[i],rr=r*(1-f*.06);
-    ctx.fillStyle=i===0?'rgba(79,179,255,'+(.2+f*.4).toFixed(2)+')':'rgba(216,52,63,'+(.22+f*.4).toFixed(2)+')';
+  for(let i=0;i<3;i++){
+    const f=btnFlash[i],x=xs[i],rr=(i===2?crouchR():r)*(1-f*.06);
+    ctx.fillStyle=i===0?'rgba(79,179,255,'+(.2+f*.4).toFixed(2)+')':i===1?'rgba(216,52,63,'+(.22+f*.4).toFixed(2)+')':'rgba(110,200,140,'+(.2+f*.4).toFixed(2)+')';
     ctx.beginPath();ctx.arc(x,y,rr,0,TAU);ctx.fill();
     ctx.lineWidth=3;ctx.strokeStyle='rgba(239,230,210,'+(.45+f*.5).toFixed(2)+')';ctx.stroke();
     ctx.strokeStyle='#efe6d2';ctx.lineWidth=Math.max(3,r*.09);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
     if(i===0){ctx.moveTo(x-r*.22,y-r*.12);ctx.lineTo(x,y-r*.36);ctx.lineTo(x+r*.22,y-r*.12);}
+    else if(i===2){const q=rr/r;ctx.moveTo(x-r*.22*q,y-r*.36*q);ctx.lineTo(x,y-r*.14*q);ctx.lineTo(x+r*.22*q,y-r*.36*q);}
     else{ctx.moveTo(x-r*.24,y-r*.06);ctx.quadraticCurveTo(x,y-r*.5,x+r*.26,y-r*.4);}
     ctx.stroke();
     ctx.fillStyle='#efe6d2';ctx.font='700 '+Math.round(clamp(r*.36,15,24))+'px "Gowun Dodum",system-ui,sans-serif';
-    ctx.fillText(labels[i],x,y+r*.3);
-    if(!isTouch){ctx.font='13px "Gowun Dodum",system-ui,sans-serif';ctx.fillStyle='rgba(239,230,210,.7)';ctx.fillText(keys[i],x,y-r-10);}
+    if(i===2)ctx.font='700 '+Math.round(clamp(rr*.32,13,20))+'px "Gowun Dodum",system-ui,sans-serif';
+    ctx.fillText(labels[i],x,y+rr*.3);
+    if(!isTouch){ctx.font='13px "Gowun Dodum",system-ui,sans-serif';ctx.fillStyle='rgba(239,230,210,.7)';ctx.fillText(keys[i],x,y-rr-10);}
   }
   ctx.restore();
 }
@@ -1565,11 +1640,15 @@ cv.addEventListener('pointerdown',e=>{
   e.preventDefault();
   if(e.pointerType==='touch'&&!isTouch){isTouch=true;layout();}
   if(play.paused)return;
+  if(crouchHit(e.clientX,e.clientY)){crouchPtr=e.pointerId;play.crouchHeld=true;doCrouch();try{cv.setPointerCapture(e.pointerId);}catch(err){}return;}
   if(e.clientX<W/2)doJump(evTs(e));else doSlash(evTs(e));
 },{passive:false});
+let crouchPtr=null;
+function endCrouchPtr(e){if(e.pointerId===crouchPtr){crouchPtr=null;if(play)play.crouchHeld=false;}}
+cv.addEventListener('pointerup',endCrouchPtr);cv.addEventListener('pointercancel',endCrouchPtr);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 function isFormEl(t){return t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT');}
-const JUMP_KEYS={Space:1,ArrowUp:1,KeyW:1},SLASH_KEYS={KeyJ:1,ArrowRight:1,KeyK:1};
+const JUMP_KEYS={Space:1,ArrowUp:1,KeyW:1},SLASH_KEYS={KeyJ:1,ArrowRight:1,KeyK:1},CROUCH_KEYS={ArrowDown:1,KeyS:1};
 window.addEventListener('keydown',e=>{
   if(e.ctrlKey||e.metaKey||e.altKey)return;
   if(e.code==='KeyM'&&!e.repeat&&!isFormEl(e.target)){toggleMute();return;}
@@ -1578,6 +1657,7 @@ window.addEventListener('keydown',e=>{
     if(play.paused)return;
     if(JUMP_KEYS[e.code]){e.preventDefault();if(!e.repeat)doJump(evTs(e));return;}
     if(SLASH_KEYS[e.code]){e.preventDefault();if(!e.repeat)doSlash(evTs(e));return;}
+    if(CROUCH_KEYS[e.code]){e.preventDefault();play.crouchHeld=true;if(!e.repeat)doCrouch();return;}
     return;
   }
   if(curScreen==='scr-song'&&calib.running&&e.code==='Space'&&!isFormEl(e.target)){e.preventDefault();if(!e.repeat)calibTap(evTs(e));return;}
@@ -1587,6 +1667,8 @@ window.addEventListener('keydown',e=>{
     else if(curScreen==='scr-result')$('#res-songs').click();
   }
 });
+window.addEventListener('keyup',e=>{if(CROUCH_KEYS[e.code]&&play)play.crouchHeld=false;});
+window.addEventListener('blur',()=>{if(play)play.crouchHeld=false;});
 window.addEventListener('blur',()=>{if(mode==='game'&&play)pauseGame();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(mode==='game'&&play)pauseGame();if(calib.running)calibStop();}});
 ['pointerdown','keydown'].forEach(t=>window.addEventListener(t,()=>{initAudio();},{passive:true}));
