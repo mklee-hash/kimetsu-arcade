@@ -255,16 +255,6 @@
       </a>
     </li>
     <li>
-      <a class="game" href="survivors.html" data-c="water">
-        <span class="genre">생존 로그라이트</span>
-        <h2>무한의 밤</h2>
-        <p>몰려드는 혈귀 무리 속에서 자동으로 싸우며 살아남습니다. 레벨이 오를 때마다 호흡의 형을 골라 강해집니다.</p>
-        <div class="meta"><span>조작 <b>WASD · 드래그</b></span><span>한 판 <b>6분 / 12분</b></span></div>
-        <span class="seal" aria-hidden="true">夜</span>
-        <span class="play">출진하기</span>
-      </a>
-    </li>
-    <li>
       <a class="game" href="rhythm.html" data-c="thunder">
         <span class="genre">리듬 액션</span>
         <h2>호흡의 박자</h2>
@@ -275,12 +265,22 @@
       </a>
     </li>
     <li>
-      <a class="game" href="cards.html" data-c="wisteria">
-        <span class="genre">덱빌딩 카드 배틀</span>
-        <h2>귀살의 부적</h2>
-        <p>부적 카드로 덱을 만들며 세 번의 밤을 넘깁니다. 적의 다음 행동을 읽고 호흡 3칸으로 수를 짭니다.</p>
-        <div class="meta"><span>조작 <b>클릭 · 탭</b></span><span>한 판 <b>30분 이상</b></span><span>이어하기 <b>가능</b></span></div>
-        <span class="seal" aria-hidden="true">符</span>
+      <a class="game" href="runner.html" data-c="water">
+        <span class="genre">리듬 달리기</span>
+        <h2>호흡 달리기</h2>
+        <p>음악에 맞춰 달리며 박자에 맞춰 점프하고 혈귀를 벱니다. 하트가 3개라 어린이도 끝까지 즐길 수 있어요.</p>
+        <div class="meta"><span>조작 <b>점프 · 베기 버튼</b></span><span>노래 <b>3곡</b></span><span>소리 <b>필요</b></span></div>
+        <span class="seal" aria-hidden="true">走</span>
+        <span class="play">출진하기</span>
+      </a>
+    </li>
+    <li>
+      <a class="game" href="mole.html" data-c="wisteria">
+        <span class="genre">리듬 두더지 잡기</span>
+        <h2>두둥! 혈귀 잡기</h2>
+        <p>북소리에 맞춰 상자에서 튀어나오는 혈귀를 톡톡 잡아요. 네즈코는 친구니까 누르면 안 돼요!</p>
+        <div class="meta"><span>조작 <b>터치 · 키보드</b></span><span>노래 <b>3곡</b></span><span>어린이 <b>추천</b></span></div>
+        <span class="seal" aria-hidden="true">鼓</span>
         <span class="play">출진하기</span>
       </a>
     </li>
@@ -307,13 +307,11 @@
   const best = {};
   // 새벽의 일섬 saves only the score; cutoffs match slash.html.
   best['slash.html'] = byScore(get('slash:best'), [0, 800, 2000, 3500, 5500, 8000, 11000, 14500, 18500, 23000, 32000]);
-  const sv = get('survivors:best');
-  best['survivors.html'] = sv ? byScore(sv.score, [0, 400, 1000, 1800, 2800, 4000, 5000, 6200, 8200, 10500, 13500]) : -1;
   const rh = get('rhythm:best'); let r = -1;
   if (rh && typeof rh === 'object') for (const k in rh) if (rh[k]) r = Math.max(r, RK.indexOf(rh[k].rank));
   best['rhythm.html'] = r;
-  const cd = get('cards:best');
-  best['cards.html'] = cd ? RK.indexOf(cd.rank) : -1;
+  // 호흡 달리기 / 두둥! 혈귀 잡기 save {score, rank, stars}; rank is the hanja of the best rank.
+  for (const g of ['runner', 'mole']) { const b = get(g + ':best'); best[g + '.html'] = b && b.rank ? RK.indexOf(b.rank) : -1; }
 
   let top = -1, topGame = '';
   document.querySelectorAll('.game').forEach(a => {

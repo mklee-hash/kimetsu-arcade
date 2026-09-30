@@ -10,8 +10,11 @@
  *       { id:'zenitsu', name:'아가츠마 젠이츠', style:'thunder', color:'#ffe14d', title:'번개의 호흡' }
  *       { id:'rengoku', name:'렌고쿠 쿄쥬로',   style:'flame',   color:'#ff7a2f', title:'화염의 호흡' }
  *       { id:'inosuke', name:'하시비라 이노스케', style:'beast',  color:'#9fb4c8', title:'짐승의 호흡' }
+ *       { id:'nezuko',  name:'카마도 네즈코',   style:'blood',   color:'#ff7fb0', title:'혈귀술' }
+ *       { id:'shinobu', name:'코쵸우 시노부',   style:'insect',  color:'#b58cff', title:'벌레의 호흡' }
+ *     Iterate this list to offer every character (new entries are only ever appended).
  *
- *   KChars.byStyle(style)          -> entry for 'water'|'flame'|'thunder'|'beast' (or null)
+ *   KChars.byStyle(style)          -> entry for 'water'|'flame'|'thunder'|'beast'|'blood'|'insect' (or null)
  *   KChars.byId(id)                -> entry for an id (or null)            [extra helper]
  *
  *   KChars.drawBust(ctx, id, cx, cy, h, opts)
@@ -27,6 +30,9 @@
  *             expr: (optional override), trail: true (slash arc while swinging),
  *             unmasked: false (inosuke only) }
  *     swing: 0 = raised back, 0.5 = mid slash (horizontal), 1 = follow-through (down-forward).
+ *     nezuko fights barehanded: she never draws a sword (opts.sword is ignored) and `swing`
+ *     animates a front kick instead (0 = knee chambered, 0.5 = leg extended forward,
+ *     1 = follow-through down-forward) with a pink crescent trail unless trail === false.
  *     Default pose (swing null): ready stance, blade forward-down.
  *     The blade can reach ~0.7h in front of x; raised blade can reach ~1.2h above y.
  *
@@ -34,7 +40,8 @@
  *     Tiny 3/4 top-down sprite (reads at 28–48 px). (x,y) = feet/ground centre, h = total height.
  *     opts: { ang: radians (0 = right, PI/2 = down), t: seconds, moving: bool, alpha: 0..1,
  *             sword: true, hurt: 0..1, unmasked: false }
- *     Blade points along `ang` (reaches ~0.7h from the body centre). When ang points "up"
+ *     Blade points along `ang` (reaches ~0.7h from the body centre; nezuko has no blade and
+ *     reaches both clawed hands forward along `ang` instead). When ang points "up"
  *     (away from camera) the back of the head is shown and the blade is drawn behind.
  *
  *   KChars.bustDataURL(id, px, opts)
@@ -67,6 +74,9 @@
  *   - alpha < 1 fades the figure as one image (no overlapping-part seams).
  *   - hurt > 0 tints the figure red (and flinches it back, 'hurt' face when > 0.3).
  *   - Default expression in drawFigure: 'fierce' while swinging, 'hurt' when hurt > 0.3.
+ *   - nezuko's mouth is hidden by her bamboo muzzle, so her expressions read through the eyes
+ *     (smile = closed happy eyes, hurt = > <, fierce = narrowed eyes + faint temple veins).
+ *     shinobu's 'normal' face is her soft closed-mouth smile.
  *   - No shadowBlur, no filters; gradients are created once and shared.
  *   - Bounding boxes (for culling): figure x ± 0.82h, y - 1.12h .. y + 0.12h;
  *     chibi x ± 0.85h, y - 1.3h .. y + 0.42h; bust cx ± 0.55h, cy - 0.68h .. cy + 0.58h.
@@ -225,7 +235,7 @@
       ell(ctx, lx, EH * 0.12, EW * 0.74, EH * 0.95); ctx.fillStyle = grad(c.id + 'iris', c.irisGrad); ctx.fill();
       if (!LOD) { ctx.lineWidth = LW * 0.8; ctx.strokeStyle = c.irisLine; ctx.stroke(); }
       ell(ctx, lx, EH * 0.2, EW * c.pupil, EH * c.pupil * 1.3); ctx.fillStyle = c.pupilCol; ctx.fill();
-      ell(ctx, lx - side * EW * 0.28, -EH * 0.25, EW * 0.25, EH * 0.23); ctx.fillStyle = '#fff'; ctx.fill();
+      ell(ctx, lx - side * EW * 0.28, -EH * 0.25, EW * 0.25, EH * 0.23); ctx.fillStyle = c.eyeHi || '#fff'; ctx.fill();
       if (!LOD) { ell(ctx, lx + side * EW * 0.3, EH * 0.52, EW * 0.11, EH * 0.1); ctx.fill(); }
       ctx.restore();
       eyeShape(ctx, sl); stroke(ctx, 0.8);
@@ -262,6 +272,9 @@
     ctx.save(); ctx.translate(x, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     if (m === 'line') {
       ctx.beginPath(); ctx.moveTo(-0.11, 0.67); ctx.quadraticCurveTo(0, 0.73, 0.11, 0.67); stroke(ctx, 1.2);
+    } else if (m === 'soft') {
+      // gentle closed-mouth smile (shinobu)
+      ctx.beginPath(); ctx.moveTo(-0.15, 0.64); ctx.quadraticCurveTo(0, 0.76, 0.15, 0.64); stroke(ctx, 1.2);
     } else if (m === 'worry') {
       ctx.beginPath(); ctx.moveTo(-0.12, 0.7); ctx.quadraticCurveTo(-0.06, 0.64, 0, 0.69); ctx.quadraticCurveTo(0.06, 0.74, 0.12, 0.68); stroke(ctx, 1.2);
     } else if (m === 'smile' || m === 'grin') {
@@ -307,8 +320,10 @@
       c.pathBack(ctx); ctx.save(); ctx.clip();
       ctx.beginPath(); ctx.moveTo(0, -1.1); ctx.quadraticCurveTo(-0.2, -0.2, -0.1, 0.8); ctx.moveTo(0.4, -1.0); ctx.quadraticCurveTo(0.5, -0.2, 0.4, 0.7);
       ctx.lineWidth = LW; ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.stroke(); ctx.restore();
+      if (c.overBack) c.overBack(ctx);
       return;
     }
+    if (c.behindHead) c.behindHead(ctx, expr);
     c.pathBack(ctx); fs(ctx, gb, 1);
     // ears
     ell(ctx, -0.97, 0.22, 0.15, 0.21); fs(ctx, SKIN, 1);
@@ -328,12 +343,12 @@
     drawEye(ctx, c, -1, expr, fx);
     drawEye(ctx, c, 1, expr, fx);
     if (!LOD) { ctx.beginPath(); ctx.moveTo(0.02 + fx, 0.42); ctx.lineTo(-0.02 + fx, 0.47); ctx.lineCap = 'round'; ctx.lineWidth = LW * 0.9; ctx.strokeStyle = '#c98a70'; ctx.stroke(); }
-    drawMouth(ctx, c, expr, fx);
+    if (!c.noMouth) drawMouth(ctx, c, expr, fx);
     c.pathFront(ctx); ctx.fillStyle = gf; ctx.fill();
     c.pathFront(ctx, true); stroke(ctx, 1);
     if (c.hairDetail && !LOD) c.hairDetail(ctx);
     drawBrows(ctx, c, expr, fx);
-    if (c.overHead) c.overHead(ctx, expr);
+    if (c.overHead) c.overHead(ctx, expr, fx);
     if (expr === 'hurt' && !LOD) sweat(ctx);
   }
 
@@ -566,7 +581,241 @@
     if (expr === 'hurt' && !LOD) sweat(ctx);
   }
 
-  var LIST = [C.tanjiro, C.zenitsu, C.rengoku, C.inosuke].map(function (c) {
+  // ---------- extra patterns for nezuko / shinobu ----------
+  // Asanoha (hemp-leaf star): triangular lattice + spokes from each triangle's centroid.
+  function patAsanoha(ctx, x0, y0, x1, y1, a) {
+    ctx.fillStyle = '#f6a7c1'; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    var hg = a * 0.866, j0 = Math.floor(y0 / hg) - 1, j1 = Math.ceil(y1 / hg) + 1, i, j;
+    var i0 = Math.floor(x0 / a) - 2, i1 = Math.ceil(x1 / a) + 1;
+    ctx.beginPath();
+    for (j = j0; j < j1; j++) {
+      var off = (j & 1) ? a / 2 : 0, ya = j * hg, yb = ya + hg;
+      for (i = i0; i < i1; i++) {
+        var xa = i * a + off;
+        ctx.moveTo(xa, ya); ctx.lineTo(xa + a, ya);
+        ctx.moveTo(xa, ya); ctx.lineTo(xa + a / 2, yb);
+        ctx.moveTo(xa, ya); ctx.lineTo(xa - a / 2, yb);
+        if (!LOD) {
+          // spokes: down triangle (A, A+a, A+a/2 below) and up triangle (A+a/2 below, A+a, A+3a/2 below)
+          var cx1 = xa + a / 2, cy1 = ya + hg / 3, cx2 = xa + a, cy2 = ya + hg * 2 / 3;
+          ctx.moveTo(cx1, cy1); ctx.lineTo(xa, ya); ctx.moveTo(cx1, cy1); ctx.lineTo(xa + a, ya); ctx.moveTo(cx1, cy1); ctx.lineTo(xa + a / 2, yb);
+          ctx.moveTo(cx2, cy2); ctx.lineTo(xa + a, ya); ctx.moveTo(cx2, cy2); ctx.lineTo(xa + a / 2, yb); ctx.moveTo(cx2, cy2); ctx.lineTo(xa + a * 1.5, yb);
+        }
+      }
+    }
+    ctx.lineWidth = LW * (LOD ? 0.7 : 0.6); ctx.strokeStyle = '#d4608c'; ctx.stroke();
+  }
+  // Nezuko's haori: dark brown with a thin orange checked band at the hem.
+  function patNezHaori(ctx, x0, y0, x1, y1, hem, sc) {
+    ctx.fillStyle = '#2e1d18'; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    if (hem > 50) return;
+    sc = sc || 1;
+    var cs = 0.11 * sc, yb = hem - cs * 3.2;
+    ctx.fillStyle = '#b8582e'; ctx.fillRect(x0, yb, x1 - x0, cs * 2);
+    ctx.beginPath();
+    for (var jj = 0; jj < 2; jj++) for (var ii = Math.floor(x0 / cs); ii < x1 / cs; ii++) if (((ii + jj) & 1) === 0) ctx.rect(ii * cs, yb + jj * cs, cs, cs);
+    ctx.fillStyle = '#f0a060'; ctx.fill();
+  }
+  // Shinobu's butterfly-wing haori: white at the top fading to teal, black veins, black hem with white spots.
+  function patWing(ctx, x0, y0, x1, y1, hem, sc, fsc) {
+    if (hem > 50) hem = y1;              // sleeves: fade over the sleeve's own box
+    var span = Math.max(0.2, hem - y0);
+    ctx.save(); ctx.translate(0, y0); ctx.scale(1, span);
+    ctx.fillStyle = grad('shinWing', function () { return lg(0, 0, 0, 1, [[0, '#ffffff'], [0.3, '#f4fbf9'], [0.62, '#9ae6d8'], [0.82, '#6ad7c6'], [1, '#2a8f7a']]); });
+    ctx.fillRect(x0, 0, x1 - x0, (y1 - y0) / span);
+    ctx.restore();
+    var k = (sc || 1) * (fsc || 1), sp = 0.34 * k, yv = y0 + span * 0.42, i;
+    ctx.beginPath();
+    for (i = Math.floor(x0 / sp) - 1; i * sp < x1 + sp; i++) {
+      var x = i * sp;
+      ctx.moveTo(x, yv + ((i & 1) ? span * 0.12 : 0));
+      ctx.quadraticCurveTo(x + sp * 0.35, lerp(yv, hem, 0.55), x + sp * 0.12, hem);
+      if (!LOD && (i & 1)) { ctx.moveTo(x + sp * 0.16, lerp(yv, hem, 0.62)); ctx.lineTo(x + sp * 0.62, hem); }
+    }
+    ctx.lineWidth = LW * (LOD ? 1 : 0.7); ctx.strokeStyle = 'rgba(15,31,28,0.85)'; ctx.stroke();
+    var bh = 0.17 * k;
+    ctx.fillStyle = '#10201d'; ctx.fillRect(x0, hem - bh, x1 - x0, y1 - hem + bh + 0.5);
+    ctx.beginPath();
+    for (i = Math.floor(x0 / sp); i * sp < x1 + sp; i++) { ctx.moveTo(i * sp + sp * 0.5 + bh * 0.28, hem - bh * 0.5); ctx.arc(i * sp + sp * 0.5, hem - bh * 0.5, bh * 0.28, 0, TAU); }
+    ctx.fillStyle = '#ffffff'; ctx.fill();
+  }
+
+  // ---------------- NEZUKO ----------------
+  function nezBow(ctx, x, y, rot, sc) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(sc || 1, sc || 1);
+    ctx.lineJoin = 'round';
+    for (var s = -1; s <= 1; s += 2) {
+      // tail
+      poly(ctx, [s * 0.06, 0.04, s * 0.2, 0.52, s * 0.34, 0.44, s * 0.12, 0.02]); fs(ctx, '#f06a9e', 1);
+      // loop
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(s * 0.2, -0.38, s * 0.62, -0.34, s * 0.58, -0.02);
+      ctx.bezierCurveTo(s * 0.55, 0.22, s * 0.2, 0.2, 0, 0); ctx.closePath();
+      fs(ctx, '#ff8fbd', 1);
+      if (!LOD) { ell(ctx, s * 0.28, -0.06, 0.1, 0.06, s * -0.3); ctx.fillStyle = '#e0578f'; ctx.fill(); }
+    }
+    ell(ctx, 0, 0, 0.1, 0.12); fs(ctx, '#f06a9e', 1);
+    ctx.restore();
+  }
+  function nezLocks(ctx) {
+    var g = grad('nezukoLock', function () { return lg(0, -0.6, 0, 1.62, [[0, '#1a0d10'], [0.5, '#2a1216'], [0.78, '#b04a2c'], [1, '#ee7a3e']]); });
+    for (var s = -1; s <= 1; s += 2) {
+      curvy(ctx, [s * 0.86, -0.95, s * 0.76, -0.3, s * 0.82, 0.4, s * 0.88, 1.05, s * 0.98, 1.62, s * 1.16, 1.1, s * 1.22, 0.3, s * 1.14, -0.5], 0.07);
+      fs(ctx, g, 1);
+      if (!LOD) {
+        ctx.beginPath(); ctx.moveTo(s * 0.96, -0.3); ctx.quadraticCurveTo(s * 1.0, 0.6, s * 1.0, 1.3);
+        ctx.lineWidth = LW * 0.8; ctx.strokeStyle = 'rgba(255,150,110,0.3)'; ctx.stroke();
+      }
+    }
+  }
+  function nezBamboo(ctx, fx) {
+    var d = fx * 0.8, x0 = -0.8 + d, x1 = 0.8 + d, y = 0.69, r = 0.105;
+    // cord running back behind the head
+    ctx.beginPath(); ctx.moveTo(x0 + 0.06, y - 0.03); ctx.quadraticCurveTo(x0 - 0.1, y - 0.3, -1.02 + d * 0.3, 0.22);
+    ctx.moveTo(x1 - 0.06, y - 0.03); ctx.quadraticCurveTo(x1 + 0.1, y - 0.3, 1.02 + d * 0.3, 0.22);
+    ctx.lineWidth = LW * (LOD ? 1 : 1.3); ctx.strokeStyle = '#3a2418'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0, y - r); ctx.lineTo(x1, y - r); ctx.arc(x1, y, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(x0, y + r); ctx.arc(x0, y, r, Math.PI / 2, Math.PI * 1.5); ctx.closePath();
+    fs(ctx, '#a8c96a', 1);
+    ctx.beginPath(); ctx.moveTo(x0 + 0.06, y - r * 0.42); ctx.lineTo(x1 - 0.1, y - r * 0.42);
+    ctx.lineWidth = r * 0.45; ctx.strokeStyle = '#d6ec9e'; ctx.stroke();
+    // nodes
+    ctx.beginPath(); ctx.moveTo(d - 0.34, y - r); ctx.lineTo(d - 0.34, y + r); ctx.moveTo(d + 0.36, y - r); ctx.lineTo(d + 0.36, y + r);
+    ctx.lineWidth = LW * 1.5; ctx.strokeStyle = '#5f8030'; ctx.stroke();
+    if (!LOD) { ell(ctx, x1 - 0.02, y, r * 0.42, r * 0.9); fs(ctx, '#cfe39a', 0.7); }
+  }
+  C.nezuko = {
+    id: 'nezuko', name: '카마도 네즈코', style: 'blood', color: '#ff7fb0', title: '혈귀술',
+    gradBack: function () { return lg(0, -1.5, 0, 0.6, [[0, '#1a0d10'], [0.7, '#241014'], [1, '#3a1a18']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.2, [[0, '#1a0d10'], [0.7, '#261216'], [1, '#4a1e1c']]); },
+    pathBack: function (ctx) {
+      ctx.beginPath(); ctx.moveTo(-1.14, 0.55);
+      ctx.bezierCurveTo(-1.42, -0.5, -1.18, -1.52, 0, -1.52);
+      ctx.bezierCurveTo(1.18, -1.52, 1.42, -0.5, 1.14, 0.55);
+      ctx.lineTo(0, 0.35); ctx.closePath();
+    },
+    pathFront: function (ctx, edgeOnly) {
+      curvy(ctx, [1.08, -0.1, 0.98, 0.3, 0.82, -0.22, 0.64, -0.04, 0.46, -0.34, 0.27, -0.1, 0.09, -0.38, -0.1, -0.1,
+        -0.28, -0.36, -0.47, -0.06, -0.64, -0.3, -0.82, -0.1, -0.98, 0.3, -1.08, -0.1], 0.05, true);
+      if (edgeOnly) return;
+      ctx.bezierCurveTo(-1.18, -1.52, 1.18, -1.52, 1.08, -0.1);
+      ctx.closePath();
+    },
+    hairDetail: function (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(-0.55, -1.02); ctx.quadraticCurveTo(-0.2, -1.22, 0.3, -1.16);
+      ctx.lineWidth = LW * 2.2; ctx.strokeStyle = 'rgba(255,170,150,0.22)'; ctx.stroke();
+    },
+    // long hair falling behind the body (drawn behind torso; head space)
+    hairBack: function (ctx, t) {
+      SWAY = Math.sin((t || 0) * 2.4) * 0.035;
+      var g = grad('nezukoLong', function () { return lg(0, -1.2, 0, 2.62, [[0, '#1a0d10'], [0.55, '#261115'], [0.78, '#9a3e28'], [1, '#ee7a3e']]); });
+      curvy(ctx, [-1.12, -0.7, -1.3, 0.4, -1.4, 1.4, -1.46, 2.3, -1.2, 2.56, -0.95, 2.34, -0.7, 2.62, -0.4, 2.4, -0.1, 2.62,
+        0.2, 2.42, 0.5, 2.62, 0.8, 2.36, 1.1, 2.58, 1.44, 2.3, 1.4, 1.4, 1.3, 0.4, 1.12, -0.7, 0, -1.3], 0.05);
+      fs(ctx, g, 1);
+      if (!LOD) {
+        ctx.beginPath();
+        ctx.moveTo(-0.9, 0.9); ctx.quadraticCurveTo(-0.95, 1.7, -0.85, 2.3);
+        ctx.moveTo(0.9, 0.9); ctx.quadraticCurveTo(0.95, 1.7, 0.85, 2.3);
+        ctx.moveTo(0.05, 1.2); ctx.lineTo(0.0, 2.3);
+        ctx.lineWidth = LW * 0.9; ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.stroke();
+      }
+    },
+
+    overBack: function (ctx) { nezBow(ctx, 0.3, -0.72, 0.15, 1.05); },
+    overHead: function (ctx, expr, fx) {
+      nezBow(ctx, 0.9, -0.98, 0.3, 0.95);
+      nezLocks(ctx);
+      nezBamboo(ctx, fx || 0);
+      if (expr === 'fierce' && !LOD) {
+        // faint demon veins at the temples
+        ctx.beginPath();
+        for (var s = -1; s <= 1; s += 2) {
+          ctx.moveTo(s * 0.7, -0.26); ctx.lineTo(s * 0.64, -0.12); ctx.lineTo(s * 0.7, 0.0);
+          ctx.moveTo(s * 0.64, -0.12); ctx.lineTo(s * 0.54, -0.1);
+        }
+        ctx.lineWidth = LW * 1.1; ctx.strokeStyle = 'rgba(220,60,120,0.75)'; ctx.stroke();
+      }
+    },
+    irisGrad: function () { return lg(0, -EH, 0, EH * 1.1, [[0, '#6e0c34'], [0.5, '#c2185b'], [1, '#ff8fbd']]); },
+    irisLine: '#5a0a2a', pupilCol: '#3a0618', pupil: 0.24,
+    brow: browThin('#2a1216'),
+    noMouth: true,
+    haori: function (ctx, x0, y0, x1, y1, hem, sc) { patNezHaori(ctx, x0, y0, x1, y1, hem, sc); },
+    kimono: function (ctx, x0, y0, x1, y1, sc) { patAsanoha(ctx, x0, y0, x1, y1, 0.3 * (sc || 1)); },
+    cuff: '#f6a7c1',
+    sleeve: '#2e1d18',
+    legCol: SKIN, wrapCol: SKIN, wrapLines: false,
+    noSword: true, kick: true,
+    blade: 'black', guard: '#1a1a1a', hilt: '#2a2a36', trailMix: 0.22
+  };
+
+  // ---------------- SHINOBU ----------------
+  function butterfly(ctx, x, y, rot, sc) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(sc || 1, sc || 1);
+    var gw = grad('shinFly', function () { return rg(0, 0, 0.05, 0, 0, 0.66, [[0, '#ffe0f4'], [0.35, '#f0a8ea'], [0.7, '#b07cff'], [1, '#6a34c0']]); });
+    for (var s = -1; s <= 1; s += 2) {
+      // forewing: broad, pointed outer corner
+      ctx.beginPath(); ctx.moveTo(s * 0.03, -0.02);
+      ctx.bezierCurveTo(s * 0.12, -0.42, s * 0.5, -0.62, s * 0.68, -0.5);
+      ctx.bezierCurveTo(s * 0.66, -0.2, s * 0.46, 0.0, s * 0.03, 0.03); ctx.closePath();
+      fs(ctx, gw, 1);
+      // hindwing: rounded lobe
+      ctx.beginPath(); ctx.moveTo(s * 0.03, 0.02);
+      ctx.bezierCurveTo(s * 0.4, 0.0, s * 0.52, 0.2, s * 0.4, 0.38);
+      ctx.bezierCurveTo(s * 0.28, 0.5, s * 0.08, 0.34, s * 0.03, 0.06); ctx.closePath();
+      fs(ctx, gw, 1);
+      if (!LOD) {
+        ctx.beginPath(); ctx.moveTo(s * 0.05, -0.02); ctx.lineTo(s * 0.52, -0.46); ctx.moveTo(s * 0.05, 0.0); ctx.lineTo(s * 0.56, -0.22);
+        ctx.moveTo(s * 0.05, 0.04); ctx.lineTo(s * 0.36, 0.3);
+        ctx.lineWidth = LW * 0.7; ctx.strokeStyle = 'rgba(40,10,60,0.6)'; ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(s * 0.66, -0.5); ctx.bezierCurveTo(s * 0.65, -0.24, s * 0.5, -0.08, s * 0.36, -0.03);
+        ctx.lineWidth = LW * 1.6; ctx.strokeStyle = '#2a1040'; ctx.stroke();
+        ctx.fillStyle = '#fff'; circ(ctx, s * 0.58, -0.4, 0.035); ctx.fill(); circ(ctx, s * 0.55, -0.28, 0.03); ctx.fill();
+      }
+    }
+    ell(ctx, 0, 0.04, 0.045, 0.2); fs(ctx, '#2a1838', 0.7);
+    ctx.restore();
+  }
+  C.shinobu = {
+    id: 'shinobu', name: '코쵸우 시노부', style: 'insect', color: '#b58cff', title: '벌레의 호흡',
+    gradBack: function () { return lg(0, -1.45, 0, 0.72, [[0, '#1a1020'], [0.55, '#2a1838'], [0.82, '#5a2e96'], [1, '#8a4fd8']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.74, [[0, '#1a1020'], [0.5, '#24142e'], [0.78, '#5a2e96'], [1, '#9a62e8']]); },
+    pathBack: function (ctx) {
+      ctx.beginPath(); ctx.moveTo(-1.06, 0.9);
+      ctx.bezierCurveTo(-1.44, -0.2, -1.22, -1.46, 0, -1.46);
+      ctx.bezierCurveTo(1.22, -1.46, 1.44, -0.2, 1.06, 0.9);
+      ctx.quadraticCurveTo(0.95, 0.66, 0.84, 0.66); ctx.lineTo(0, 0.3); ctx.lineTo(-0.84, 0.66);
+      ctx.quadraticCurveTo(-0.95, 0.66, -1.06, 0.9); ctx.closePath();
+    },
+    pathFront: function (ctx, edgeOnly) {
+      curvy(ctx, [1.12, -0.05, 1.02, 0.92, 0.9, 0.3, 0.8, -0.04, 0.62, -0.2, 0.5, -0.5, 0.3, -0.12, 0.16, -0.56, -0.02, -0.18,
+        -0.12, -0.62, -0.3, -0.16, -0.5, -0.5, -0.66, -0.12, -0.8, -0.04, -0.9, 0.3, -1.02, 0.92, -1.12, -0.05], 0.05, true);
+      if (edgeOnly) return;
+      ctx.bezierCurveTo(-1.2, -1.48, 1.2, -1.48, 1.1, -0.05);
+      ctx.closePath();
+    },
+    hairDetail: function (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(-0.6, -1.0); ctx.quadraticCurveTo(-0.2, -1.2, 0.35, -1.12);
+      ctx.lineWidth = LW * 2.2; ctx.strokeStyle = 'rgba(200,160,255,0.25)'; ctx.stroke();
+    },
+    overBack: function (ctx) {
+      circ(ctx, 0, -0.62, 0.42); fs(ctx, '#1f1328', 1);
+      ctx.beginPath(); ctx.moveTo(-0.2, -0.8); ctx.quadraticCurveTo(0, -0.5, 0.2, -0.8); ctx.lineWidth = LW; ctx.strokeStyle = 'rgba(180,140,255,0.35)'; ctx.stroke();
+      butterfly(ctx, -0.5, -0.78, -0.35, 0.95);
+    },
+    overHead: function (ctx) { butterfly(ctx, -1.0, -1.0, -0.5, 1.0); },
+    irisGrad: function () { return lg(0, -EH, 0, EH * 1.1, [[0, '#3a1a5a'], [0.5, '#8a5ad0'], [1, '#e2ccff']]); },
+    irisLine: '#2e1450', pupilCol: '#4a2a7a', pupil: 0.22, eyeHi: 'rgba(255,255,255,0.5)', eyeSlant: -0.03,
+    brow: browThin('#2a1838'),
+    mouth: 'soft',
+    haori: function (ctx, x0, y0, x1, y1, hem, sc, fsc) { patWing(ctx, x0, y0, x1, y1, hem, sc, fsc); },
+    sleeve: '#e8f8f4',
+    blade: 'needle', bladeLen: 2.25, guard: '#8a4fd8', hilt: '#2a2238', trailMix: 0.3
+  };
+
+  var LIST = [C.tanjiro, C.zenitsu, C.rengoku, C.inosuke, C.nezuko, C.shinobu].map(function (c) {
     return { id: c.id, name: c.name, style: c.style, color: c.color, title: c.title };
   });
 
@@ -591,6 +840,17 @@
       fs(ctx, '#9fb4c8', 1);
       ctx.beginPath(); ctx.moveTo(b0, -0.03); ctx.lineTo(tip - 0.1, -0.03);
       ctx.lineWidth = LW * 0.9; ctx.strokeStyle = '#e6f0f8'; ctx.stroke();
+    } else if (c.blade === 'needle') {
+      // shinobu: stinger sword — short broad base, then a very thin needle to a sharp point
+      var nw = LOD ? 0.06 : 0.042, bl = Math.min(0.42, len * 0.2);
+      ctx.moveTo(b0, -0.09); ctx.lineTo(b0 + bl, -0.07); ctx.lineTo(b0 + bl + 0.12, -nw);
+      ctx.lineTo(tip - 0.3, -nw * 0.8); ctx.lineTo(tip, 0); ctx.lineTo(tip - 0.3, nw * 0.8);
+      ctx.lineTo(b0 + bl + 0.12, nw); ctx.lineTo(b0 + bl, 0.07); ctx.lineTo(b0, 0.09); ctx.closePath();
+      fs(ctx, grad('needleBlade', function () { return lg(0, 0, 2.4, 0, [[0, '#b9a2e8'], [0.25, '#e6ecf4'], [1, '#bff0e4']]); }), LOD ? 0.8 : 0.7);
+      if (!LOD) {
+        ctx.beginPath(); ctx.moveTo(b0 + bl + 0.14, 0); ctx.lineTo(tip - 0.2, 0);
+        ctx.lineWidth = LW * 0.6; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+      }
     } else {
       var bw = LOD ? 0.1 : 0.085;
       ctx.moveTo(b0, -bw);
@@ -616,6 +876,10 @@
       if (c.blade === 'flame') {
         ctx.beginPath(); ctx.moveTo(0.16, -0.22); ctx.lineTo(0.26, -0.12); ctx.lineTo(0.22, 0); ctx.lineTo(0.26, 0.12); ctx.lineTo(0.16, 0.22); ctx.lineTo(0.1, 0);
         ctx.closePath(); fs(ctx, c.guard, 1);
+      } else if (c.blade === 'needle') {
+        // hexagonal butterfly guard: purple wings, green centre
+        poly(ctx, [0.16, -0.24, 0.24, -0.12, 0.24, 0.12, 0.16, 0.24, 0.08, 0.12, 0.08, -0.12]); fs(ctx, c.guard, 1);
+        poly(ctx, [0.16, -0.1, 0.2, -0.05, 0.2, 0.05, 0.16, 0.1, 0.12, 0.05, 0.12, -0.05]); ctx.fillStyle = '#3fc4a4'; ctx.fill();
       } else {
         ell(ctx, 0.16, 0, 0.06, 0.18); fs(ctx, c.guard, 1);
       }
@@ -734,6 +998,7 @@
       circ(ctx, 0, 0, 1.94); ctx.clip();
     }
     var inos = id === 'inosuke';
+    if (c.hairBack) { ctx.save(); ctx.translate(0, -0.45); c.hairBack(ctx, o.t || 0); ctx.restore(); }
     // neck
     ctx.beginPath(); ctx.rect(-0.28, 0.3, 0.56, 0.7); ctx.fillStyle = inos ? c.skin : SKIN; ctx.fill();
     ctx.fillStyle = inos ? c.skinSh : SKIN_SH; ctx.fillRect(-0.28, 0.3, 0.56, 0.22);
@@ -755,6 +1020,31 @@
       ctx.moveTo(-1.35, 1.35); ctx.quadraticCurveTo(-1.25, 1.7, -1.3, 2.1);
       ctx.moveTo(1.35, 1.35); ctx.quadraticCurveTo(1.25, 1.7, 1.3, 2.1);
       ctx.lineWidth = LW; ctx.strokeStyle = '#b8845e'; ctx.stroke();
+    } else if (c.kimono) {
+      // pink asanoha kimono, crossed collar, dark obi (nezuko)
+      bodyPath(); ctx.save(); ctx.clip();
+      c.kimono(ctx, -2, 0.7, 2, 2.3, 1);
+      ctx.fillStyle = '#2e1a22'; ctx.fillRect(-2, 1.86, 4, 0.4);
+      ctx.fillStyle = '#f2e2c4'; ctx.fillRect(-2, 1.98, 4, 0.07);
+      ctx.restore();
+      bodyPath(); stroke(ctx, 1);
+      ctx.beginPath(); ctx.moveTo(-0.3, 0.84); ctx.lineTo(0.2, 1.62); ctx.lineTo(0.36, 1.5); ctx.lineTo(-0.1, 0.8); ctx.closePath();
+      fs(ctx, '#ffe4ee', 0.9);
+      ctx.beginPath(); ctx.moveTo(0.3, 0.84); ctx.lineTo(0.06, 1.28); ctx.lineTo(0.14, 1.36); ctx.lineTo(0.42, 0.9); ctx.closePath();
+      fs(ctx, '#ffe4ee', 0.9);
+      ctx.beginPath(); ctx.moveTo(-1.9, 1.86); ctx.lineTo(1.9, 1.86); stroke(ctx, 0.9);
+      var kPanel = function (sd) {
+        ctx.save(); ctx.scale(sd, 1);
+        ctx.beginPath(); ctx.moveTo(0.62, 0.95);
+        ctx.bezierCurveTo(1.05, 1.0, 1.5, 1.06, 1.68, 1.45); ctx.lineTo(1.9, 2.25); ctx.lineTo(0.8, 2.25);
+        ctx.quadraticCurveTo(0.62, 1.6, 0.62, 0.95); ctx.closePath();
+        ctx.restore();
+      };
+      for (var kd = -1; kd <= 1; kd += 2) {
+        kPanel(kd); ctx.save(); ctx.clip(); c.haori(ctx, -2, 0.8, 2, 2.3, 2.2, 1);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(kd > 0 ? 0.62 : -0.82, 0.8, 0.2, 1.5);
+        ctx.restore(); kPanel(kd); stroke(ctx, 1);
+      }
     } else {
       bodyPath(); fs(ctx, UNI, 1);
       ctx.beginPath(); ctx.moveTo(0, 1.05); ctx.lineTo(0, 2.2); ctx.lineWidth = LW; ctx.strokeStyle = UNI_HI; ctx.stroke();
@@ -847,8 +1137,9 @@
     var walk = (typeof o.walk === 'number') ? o.walk : null;
     var sw = (typeof o.swing === 'number') ? clamp01(o.swing) : null;
     var kn = clamp01(o.kneel || 0);
-    var hasSword = o.sword !== false;
+    var hasSword = o.sword !== false && !c.noSword;
     var inos = c.id === 'inosuke';
+    var kick = !!c.kick && sw !== null;     // barehanded fighters (nezuko): swing = kick
     var expr = o.expr || (hurt > 0.3 ? 'hurt' : (sw !== null ? 'fierce' : 'normal'));
 
     ctx.save();
@@ -861,13 +1152,20 @@
     var p = walk !== null ? walk * TAU : 0;
     var bob = walk !== null ? Math.abs(Math.sin(p)) * 0.1 : 0;
     var hipY = -1.5 + kn * 0.62 - bob + (walk === null ? breath * 0.3 : 0);
-    var lean = -0.22 * hurt + (sw !== null ? (sw > 0.4 ? 0.12 : -0.05) : 0.03) + kn * 0.08;
+    var lean = -0.22 * hurt + (kick ? -0.1 : sw !== null ? (sw > 0.4 ? 0.12 : -0.05) : 0.03) + kn * 0.08;
     var shY = hipY - 1.55 + breath;
     var legW = 0.5;
 
     // ---- legs (computed) ----
+    function kickAng(v) { return v < 0.5 ? lerp(1.35, -0.12, ease(v / 0.5)) : lerp(-0.12, 0.72, ease((v - 0.5) / 0.5)); }
+    function kickLen(v) { return v < 0.5 ? lerp(1.0, 1.55, ease(v / 0.5)) : lerp(1.55, 1.4, (v - 0.5) / 0.5); }
     function legPts(side) {
       var hx = side * 0.27, hy = hipY + 0.12;
+      if (kick && side > 0) {
+        var ka = kickAng(sw), kl = kickLen(sw), bend = sw < 0.5 ? lerp(0.5, 0.05, ease(sw / 0.5)) : lerp(0.05, 0.22, (sw - 0.5) / 0.5);
+        var kfx = hx + kl * Math.cos(ka), kfy = hy + kl * Math.sin(ka);
+        return [hx, hy, (hx + kfx) / 2 + Math.sin(ka) * bend, (hy + kfy) / 2 - Math.cos(ka) * bend, kfx, kfy];
+      }
       var fx = side * 0.36, fy = 0, kx, ky;
       if (walk !== null) {
         var ph = p + (side > 0 ? 0 : Math.PI);
@@ -884,12 +1182,12 @@
     }
     function drawLeg(L) {
       ctx.beginPath(); ctx.moveTo(L[0], L[1]); ctx.lineTo(L[2], L[3]); ctx.lineTo(lerp(L[2], L[4], 0.5), lerp(L[3], L[5], 0.5));
-      oline(ctx, legW + 0.05, inos ? '#3a4a5c' : UNI);
+      oline(ctx, legW + 0.05, inos ? '#3a4a5c' : (c.legCol || UNI));
       // wraps
       var wx = lerp(L[2], L[4], 0.35), wy = lerp(L[3], L[5], 0.35);
       ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(L[4], L[5] - 0.12);
-      oline(ctx, 0.33, inos ? '#6b5a4c' : '#f1f1ec');
-      if (!LOD) {
+      oline(ctx, 0.33, inos ? '#6b5a4c' : (c.wrapCol || '#f1f1ec'));
+      if (!LOD && c.wrapLines !== false) {
         ctx.beginPath();
         for (var i = 1; i < 4; i++) { var q = i / 4; var xx = lerp(wx, L[4], q), yy = lerp(wy, L[5] - 0.12, q); ctx.moveTo(xx - 0.16, yy - 0.05); ctx.lineTo(xx + 0.16, yy + 0.03); }
         ctx.lineWidth = LW * 0.8; ctx.strokeStyle = inos ? '#3d322a' : '#9a9a9a'; ctx.stroke();
@@ -916,10 +1214,14 @@
       } else {
         Pb = [P[0] - Math.cos(a) * 0.3, P[1] - Math.sin(a) * 0.3];
       }
+    } else if (kick) {
+      // claw guard: front hand up and forward, back hand out for balance
+      var kq = Math.sin(Math.PI * sw);
+      P = [0.72 + 0.2 * kq, shY + 0.8 - 0.3 * kq]; Pb = [-0.9 - 0.1 * kq, shY + 0.95 - 0.2 * kq];
     } else {
       P = [0.78, shY + 1.25]; Pb = [-0.78, shY + 1.25];
     }
-    var len = inos ? 2.0 : 2.35;
+    var len = inos ? 2.0 : (c.bladeLen || 2.35);
     var bladeBehind = hasSword && a < -1.2;
 
     function leanOn() { ctx.save(); ctx.translate(0, hipY); ctx.rotate(lean); ctx.translate(0, -hipY); }
@@ -930,6 +1232,11 @@
         limb(ctx, S[0], S[1], H[0], H[1], 0.3, 0.24);
         ctx.save(); ctx.clip();
         c.haori(ctx, Math.min(S[0], H[0]) - 0.5, Math.min(S[1], H[1]) - 0.5, Math.max(S[0], H[0]) + 0.5, Math.max(S[1], H[1]) + 0.5, 99, 0.8);
+        if (c.cuff) {
+          // under-kimono cuff showing at the wrist
+          ctx.beginPath(); ctx.moveTo(lerp(S[0], H[0], 0.8), lerp(S[1], H[1], 0.8)); ctx.lineTo(H[0], H[1]);
+          ctx.lineWidth = 0.7; ctx.strokeStyle = c.cuff; ctx.stroke();
+        }
         if (c.id === 'rengoku') {
           // flame cuff near hand
           ctx.beginPath(); ctx.moveTo(lerp(S[0], H[0], 0.72), lerp(S[1], H[1], 0.72)); ctx.lineTo(H[0], H[1]);
@@ -953,9 +1260,15 @@
       ctx.beginPath(); ctx.moveTo(bx + 0.12, by + 0.7); ctx.lineTo(bx + 0.88, by + 0.7); ctx.moveTo(bx + 0.5, by + 0.12); ctx.lineTo(bx + 0.5, by + 1.38); ctx.stroke();
       ctx.beginPath(); ctx.rect(bx - 0.04, by - 0.08, 1.08, 0.14); fs(ctx, '#7a4a26', 1);
     }
+    if (c.hairBack) {
+      ctx.save(); ctx.translate(0.06, shY - 1.2); if (sw !== null) ctx.rotate(0.05);
+      c.hairBack(ctx, t);
+      ctx.restore();
+    }
     if (hasSword && inos) { drawSword(ctx, c, Pb[0], Pb[1], ab, len); }
     sleeve(SB, Pb, false);
     if (inos) hand(ctx, Pb[0], Pb[1], 0.15, c.skin);
+    else if (c.noSword) hand(ctx, Pb[0], Pb[1], 0.15);
     if (!inos) {
       var bot = hipY + 0.68;
       var haoriPath = function () {
@@ -975,6 +1288,27 @@
     ctx.restore();
 
     // ===== 2. legs =====
+    // kick trail: crescent following the kicking foot
+    if (kick && o.trail !== false && sw > 0.12) {
+      var KN = 12, ks0 = Math.max(0, sw - 0.42), ko = [], ki = [], kj;
+      for (kj = 0; kj <= KN; kj++) {
+        var kv = lerp(ks0, sw, kj / KN), kA = kickAng(kv), kR = kickLen(kv) + 0.3;
+        var kr = lerp(kR, kR * 0.3, kj / KN);
+        ko.push(0.27 + Math.cos(kA) * kR, hipY + 0.12 + Math.sin(kA) * kR);
+        ki.push(0.27 + Math.cos(kA) * kr, hipY + 0.12 + Math.sin(kA) * kr);
+      }
+      ctx.beginPath(); ctx.moveTo(ko[0], ko[1]);
+      for (kj = 2; kj < ko.length; kj += 2) ctx.lineTo(ko[kj], ko[kj + 1]);
+      for (kj = ki.length - 2; kj >= 0; kj -= 2) ctx.lineTo(ki[kj], ki[kj + 1]);
+      ctx.closePath();
+      ctx.save();
+      var kfade = sw > 0.85 ? (1 - sw) / 0.15 : 1;
+      ctx.globalAlpha *= 0.82 * kfade; ctx.fillStyle = mixW(c.color, c.trailMix); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(ko[0], ko[1]);
+      for (kj = 2; kj < ko.length; kj += 2) ctx.lineTo(ko[kj], ko[kj + 1]);
+      ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.8); ctx.lineWidth = 0.1; ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.restore();
+    }
     var Lb = legPts(-1), Lf = legPts(1);
     drawLeg(Lb); drawLeg(Lf);
 
@@ -1001,6 +1335,21 @@
         -0.1, hipY + 0.6, -0.28, hipY + 0.3, -0.45, hipY + 0.58, -0.62, hipY + 0.25, -0.78, hipY + 0.45, -0.8, hipY + 0.05], 0.04);
       fs(ctx, '#7a6a5e', 1);
       if (!LOD) { ctx.beginPath(); ctx.moveTo(-0.5, hipY - 0.2); ctx.lineTo(-0.42, hipY + 0.1); ctx.moveTo(0.1, hipY - 0.2); ctx.lineTo(0.16, hipY + 0.12); ctx.moveTo(0.5, hipY - 0.22); ctx.lineTo(0.44, hipY + 0.1); ctx.lineWidth = LW; ctx.strokeStyle = '#4a3d35'; ctx.stroke(); }
+    } else if (c.kimono) {
+      // pink kimono front with skirt to the knee, crossed collar and obi
+      var skH = hipY + 0.86;
+      var kimPath = function () {
+        ctx.beginPath(); ctx.moveTo(-0.4, shY - 0.08); ctx.lineTo(0.4, shY - 0.08); ctx.lineTo(0.5, hipY - 0.1);
+        ctx.lineTo(0.7, skH); ctx.quadraticCurveTo(0, skH + 0.08, -0.7, skH); ctx.lineTo(-0.5, hipY - 0.1); ctx.closePath();
+      };
+      kimPath(); ctx.save(); ctx.clip();
+      c.kimono(ctx, -0.8, shY - 0.2, 0.8, skH + 0.2, 0.9);
+      ctx.fillStyle = 'rgba(120,20,60,0.12)'; ctx.fillRect(-0.8, hipY - 0.1, 0.5, 1.2);
+      ctx.restore(); kimPath(); stroke(ctx, 1);
+      ctx.beginPath(); ctx.moveTo(-0.26, shY - 0.08); ctx.lineTo(0.18, shY + 0.62); ctx.moveTo(0.26, shY - 0.08); ctx.lineTo(0.04, shY + 0.34);
+      ctx.lineWidth = 0.1; ctx.strokeStyle = '#ffe4ee'; ctx.stroke();
+      ctx.beginPath(); ctx.rect(-0.5, hipY - 0.46, 1.0, 0.34); fs(ctx, '#2e1a22', 1);
+      ctx.fillStyle = '#f2e2c4'; ctx.fillRect(-0.5, hipY - 0.33, 1.0, 0.07);
     } else {
       // uniform strip between haori panels
       ctx.beginPath(); ctx.moveTo(-0.34, shY - 0.08); ctx.lineTo(0.34, shY - 0.08); ctx.lineTo(0.44, hipY + 0.05); ctx.lineTo(-0.44, hipY + 0.05); ctx.closePath();
@@ -1088,7 +1437,7 @@
     var s = h / 3.0, ang = o.ang || 0, t = o.t || 0;
     var ca = Math.cos(ang), sa = Math.sin(ang);
     var inos = c.id === 'inosuke';
-    var hasSword = o.sword !== false;
+    var hasSword = o.sword !== false && !c.noSword;
     ctx.save();
     ctx.translate(x, y); ctx.scale(s, s);
     setLW(s); LOD = 1;
@@ -1105,6 +1454,20 @@
     var bAng = Math.atan2(sa * 0.8, ca);
     var blen = 1.35;
     function blades(front) {
+      if (c.noSword) {
+        // barehanded: both hands reach forward along ang, with little pink claws
+        var px = -sa, py = ca * 0.5;
+        for (var hs = -1; hs <= 1; hs += 2) {
+          var cx0 = ca * 0.5 + px * 0.3 * hs, cy0 = -0.78 + sa * 0.3 + py * 0.3 * hs;
+          ctx.beginPath(); ctx.moveTo(cx0 + ca * 0.1, cy0 + sa * 0.08);
+          ctx.lineTo(cx0 + ca * 0.3 + px * 0.06, cy0 + sa * 0.24 + py * 0.06);
+          ctx.moveTo(cx0 + ca * 0.1, cy0 + sa * 0.08);
+          ctx.lineTo(cx0 + ca * 0.3 - px * 0.06, cy0 + sa * 0.24 - py * 0.06);
+          ctx.lineWidth = LW * 1.6; ctx.strokeStyle = '#e0407e'; ctx.stroke();
+          hand(ctx, cx0, cy0, 0.16);
+        }
+        return;
+      }
       if (!hasSword) return;
       if (inos) {
         var hx2 = -ca * 0.35 + (-sa) * 0.35, hy2 = -0.72 + ca * 0.2;
@@ -1114,6 +1477,11 @@
       hand(ctx, hx, hy, 0.17, inos ? c.skin : SKIN);
     }
     var swordFirst = sa < 0.1;
+    function longHair() {
+      if (!c.hairBack) return;
+      ctx.save(); ctx.translate(0, -1.95); ctx.scale(0.95, 0.95); c.hairBack(ctx, t); ctx.restore();
+    }
+    if (!back) longHair();
     if (swordFirst) blades();
     // feet
     var fo = mv * 0.14;
@@ -1130,12 +1498,18 @@
       bp(); ctx.save(); ctx.clip();
       c.haori(ctx, -0.8, -1.3, 0.8, 0, -0.1, 0.8);
       ctx.restore(); bp(); stroke(ctx, 1);
-      if (!back) {
+      if (!back && c.kimono) {
+        var kp = function () { ctx.beginPath(); ctx.moveTo(-0.28 + fx * 0.3, -1.18); ctx.lineTo(0.28 + fx * 0.3, -1.18); ctx.lineTo(0.46 + fx * 0.3, -0.12); ctx.quadraticCurveTo(fx * 0.3, -0.06, -0.46 + fx * 0.3, -0.12); ctx.closePath(); };
+        kp(); ctx.save(); ctx.clip(); c.kimono(ctx, -0.8, -1.3, 0.8, 0, 0.8); ctx.restore(); kp(); stroke(ctx, 0.8);
+        ctx.beginPath(); ctx.rect(-0.4 + fx * 0.3, -0.74, 0.8, 0.22); fs(ctx, '#2e1a22', 0.8);
+        ctx.fillStyle = '#f2e2c4'; ctx.fillRect(-0.4 + fx * 0.3, -0.66, 0.8, 0.06);
+      } else if (!back) {
         ctx.beginPath(); ctx.moveTo(-0.2 + fx * 0.3, -1.18); ctx.lineTo(0.2 + fx * 0.3, -1.18); ctx.lineTo(0.26 + fx * 0.3, -0.3); ctx.lineTo(-0.26 + fx * 0.3, -0.3); ctx.closePath();
         fs(ctx, UNI, 0.8);
         ctx.fillStyle = '#efefe8'; ctx.fillRect(-0.26 + fx * 0.3, -0.62, 0.52, 0.1);
       }
     }
+    if (back) longHair();
     // head
     ctx.save(); ctx.translate(0, -1.95); ctx.scale(0.95, 0.95);
     drawHead(ctx, c, 'normal', t, back ? 0 : fx, { back: back, unmasked: !!o.unmasked });
