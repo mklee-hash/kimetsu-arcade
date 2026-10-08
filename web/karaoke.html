@@ -253,7 +253,24 @@ function player() {
   const p = curProfile();
   return p ? { pid: p.id.replace(/[^a-z0-9]/gi, ''), id: p.id, name: p.name, avatar: p.avatar, legacy: !!p.legacy } : { pid: 'guest', name: '대원', avatar: 'tanjiro', guest: true };
 }
-const go = n => { ['home', 'sing', 'result', 'wait', 'hand'].forEach(x => $('scr-' + x).classList.toggle('active', x === n)); window.scrollTo(0, 0); };
+let skipPop = false, cancelSing = false;
+const go = n => {
+  ['home', 'sing', 'result', 'wait', 'hand'].forEach(x => $('scr-' + x).classList.toggle('active', x === n)); window.scrollTo(0, 0);
+  const ours = history.state && history.state.kara;
+  if (n !== 'home' && !ours) { try { history.pushState({ kara: 1 }, ''); } catch (e) { /* */ } }
+  else if (n === 'home' && ours) { skipPop = true; try { history.back(); } catch (e) { skipPop = false; } }
+};
+// Phone back button / browser back: stop what is going on and show the song list
+window.addEventListener('popstate', () => {
+  if (skipPop) { skipPop = false; return; }
+  $('sheet').hidden = true; $('pausebox').hidden = true;
+  if ($('scr-home').classList.contains('active')) return;
+  if (SESSION) { SESSION.finish(true); return; }                     // singing: the caller goes back to the list
+  if ($('scr-sing').classList.contains('active')) { cancelSing = true; return; }   // still counting in
+  if (ON) { const me = player(); ON.closed = true; fsSet('lobby/' + family(), { ['r_' + me.pid]: null }).catch(() => { /* expires */ }); ON = null; }
+  if (HAND) { const h = HAND; HAND = null; h(null); }
+  go('home'); renderHome();
+});
 function grade(s) { return s >= 90 ? '柱급 노래 실력! 🏆' : s >= 75 ? '아주 잘했어요! 🎉' : s >= 50 ? '좋아요! 👍' : '다시 불러 볼까요? 🎤'; }
 
 /* ---------- records ---------- */
@@ -417,11 +434,19 @@ function moraHangul(m) {
   if (m === 'ー') return '~';
   return D.pron(m) || m;
 }
+// ん changes with the next sound: before m/b/p it is 'm' (음), before k/g or at the end 'ng' (응), otherwise 'n' (은)
+function nasal(next) {
+  const c = next ? D.toHira(next)[0] : '';
+  if (!c || 'あいうえおやゆよわをはひふへほー'.includes(c)) return '응';
+  if ('まみむめもばびぶべぼぱぴぷぺぽ'.includes(c)) return '음';
+  if ('かきくけこがぎぐげご'.includes(c)) return '응';
+  return '은';
+}
 function hangulFor(song) {
   song.lines.forEach(L => {
     if (L.hg) return;
     const pm = L.pk ? KSONGS_morae(L.pk) : null, src = pm && pm.length === L.syl.length ? pm : L.syl;
-    L.hg = src.map(moraHangul);
+    L.hg = src.map((m, k) => m === 'ん' || m === 'ン' ? nasal(src[k + 1]) : moraHangul(m));
   });
 }
 const W_GRADE = { perfect: 1, good: 0.75, ok: 0.4, miss: 0 };
@@ -442,6 +467,7 @@ function sing(song, opts) {
     if (opts.opp) { const o = $('s-opp'); o.querySelector('img').src = face(opts.opp.avatar, 60); o.querySelector('.on').textContent = opts.opp.name; }
     go('sing');
     let mic = null;
+    cancelSing = false;
     const timeout = (pr, ms) => Promise.race([pr, wait(ms).then(() => { throw new Error('timeout'); })]);
     $('s-mode').textContent = '🎤 마이크를 준비하고 있어요… (허용을 눌러 주세요)';
     try { mic = await timeout(startMic(), 25000); } catch (e) { mic = null; }
@@ -456,13 +482,17 @@ function sing(song, opts) {
     const spb = 60 / song.bpm, trail = [];
     // count-down overlay, then music
     const cnt = $('count'); cnt.hidden = false;
-    for (const t of ['3', '2', '1']) { cnt.innerHTML = t + '<small>' + (t === '1' ? '노래 시작!' : '준비하세요') + '</small>'; await wait(650); }
+    for (const t of ['3', '2', '1']) {
+      if (cancelSing) break;
+      cnt.innerHTML = t + '<small>' + (t === '1' ? '노래 시작!' : '준비하세요') + '</small>'; await wait(650);
+    }
     cnt.hidden = true;
+    if (cancelSing) { cancelSing = false; stopMic(); resolve(null); return; }
     const startAt = AC.currentTime + 4 * spb + 0.15, track = playSong(song, startAt);
     let done = false, lastLine = -1, scoreNow = 0, nextFrame = 0;
     const stopBtn = $('stop');
     const finish = aborted => {
-      if (done) return; done = true; track.stop(); stopMic();
+      if (done) return; done = true; track.stop(); stopMic(); SESSION = null;
       document.removeEventListener('visibilitychange', onHide); $('pausebox').hidden = true; pauseBtn.onclick = null;
       stopBtn.onclick = null; $('tap').onclick = null;
       notes.forEach(n => { if (!n.grade) judge(n); });
@@ -699,19 +729,22 @@ function pickPartner(song) {
 }
 
 /* ---------- pass-and-play battle ---------- */
+let HAND = null;
 function handoff(p, text) {
   return new Promise(resolve => {
+    HAND = resolve;
     const h = $('hand'); h.textContent = '';
     h.append(faceImg(p.avatar, 130), el('h2', 'brush', p.name + ' 차례!'), el('p', null, text));
     h.children[1].style.fontSize = '46px';
-    const b = el('button', 'btn red', '🎤 준비됐어요! 시작'); b.type = 'button'; b.addEventListener('click', () => resolve());
+    const b = el('button', 'btn red', '🎤 준비됐어요! 시작'); b.type = 'button'; b.addEventListener('click', () => { HAND = null; resolve(true); });
     h.appendChild(b); go('hand');
   });
 }
 async function localBattle(song, ps) {
   const scores = [];
   for (let i = 0; i < 2; i++) {
-    await handoff(ps[i], i === 0 ? '먼저 불러요. 다 부르면 폰을 ' + ps[1].name + '에게 넘겨 주세요.' : ps[0].name + '은(는) ' + scores[0].score + '점! 이길 수 있을까요?');
+    const ok = await handoff(ps[i], i === 0 ? '먼저 불러요. 다 부르면 폰을 ' + ps[1].name + '에게 넘겨 주세요.' : ps[0].name + '은(는) ' + scores[0].score + '점! 이길 수 있을까요?');
+    if (!ok) return;
     const r = await sing(song, { player: ps[i] });
     if (!r) { go('home'); renderHome(); return; }
     scores.push(r); saveSolo(ps[i], song, r.score);
