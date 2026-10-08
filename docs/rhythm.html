@@ -379,28 +379,78 @@ const COL={paper:'#efe6d2',paperDim:'#b9b2a3',blood:'#d8343f',wisteria:'#a58bdc'
 const STYLE={
   water:{color:'#4fb3ff',name:'물의 호흡',moves:['잔물결 베기','소용돌이 가르기','폭포 떨구기','흐르는 달','깊은 못 가르기','고요한 수면']},
   flame:{color:'#ff7a2f',name:'화염의 호흡',moves:['불씨 일섬','해돋이 불꽃','화륜 베기','불기둥 솟구침','노을 태우기','타오르는 심장']},
-  thunder:{color:'#ffe14d',name:'번개의 호흡',moves:['섬광 일도','번개 사슬','뇌명 질주','천둥 가르기','벽력 난무','하늘 찢기']}
+  thunder:{color:'#ffe14d',name:'번개의 호흡',moves:['섬광 일도','번개 사슬','뇌명 질주','천둥 가르기','벽력 난무','하늘 찢기']},
+  blood:{color:'#ff7fb0',name:'혈귀술',moves:['분홍 불꽃','폭혈','작은 발차기','등나무 꿈','대나무 휘두르기','오빠 지키기']},
+  insect:{color:'#b58cff',name:'벌레의 호흡',moves:['나비 춤','벌침 찌르기','잠자리 베기','지네 휘감기','나비 날갯짓','독침 일섬']},
+  mist:{color:'#7fd8cc',name:'안개의 호흡',moves:['수평선 안개','팔겹 안개','흐르는 구름','안개 바다','달빛 안개','몽롱한 칼날']},
+  stone:{color:'#b8a888',name:'바위의 호흡',moves:['바위 깨기','천면 부수기','암석 굴리기','산 흔들기','바위 피부','기도의 일격']},
+  love:{color:'#ff8fc8',name:'사랑의 호흡',moves:['첫사랑 설렘','사랑의 채찍','두근두근 베기','흩날리는 꽃','고양이 발톱','하트 회오리']},
+  serpent:{color:'#9a7cf0',name:'뱀의 호흡',moves:['구불구불 베기','뱀 휘감기','꽈리 틀기','쌍두 뱀','길게 물기','흰 뱀 일섬']},
+  beast:{color:'#9fb4c8',name:'짐승의 호흡',moves:['송곳니 물기','마구 베기','돌진 박치기','갈기 휘두르기','공간 인식','저돌맹진']},
+  water2:{color:'#3d7fe0',name:'물의 호흡',moves:['잔잔한 수면','물레방아','흐르는 춤','타격의 비','세찬 소용돌이','고요한 바다']},
+  wind:{color:'#5ed27a',name:'바람의 호흡',moves:['먼지 회오리','폭풍 베기','바람 발톱','흙먼지 바람','회오리 칼날','질풍 일섬']},
+  sound:{color:'#ff5aa8',name:'소리의 호흡',moves:['굉음','폭음 연타','울려 퍼짐','축제 북','화려한 섬광','악보 완성']},
+  sun:{color:'#ff5a2a',name:'히노카미 카구라',moves:['원무','청람 바람','열풍 베기','환일 홍염','양화돌','해돋이 불꽃']},
+  thunder2:{color:'#fff27a',name:'번개의 호흡',moves:['신속 일섬','여섯 번 연타','뇌성 질주','화뢰신','번개 꽃','빛보다 빠르게']}
 };
+const fxOf=song=>song.fx||song.style;   // which of the three stage/drum looks (water · flame · thunder) a song uses
 const SONGS=[
+  {id:'firefly',title:'반딧불 자장가',style:'blood',fx:'water',perf:'nezuko',bpm:76,root:53,scale:[0,2,4,7,9],seed:1301,pluck:'koto',fluteV:1,
+   dens:{A:'low',B:'low',C:'mid'},prog:[0,3,0,4],demon:'졸린 혈귀',desc:'네즈코가 잠든 밤의 자장가. 가장 느리고 짧은 곡.',
+   sections:[['intro',2],['A',8],['B',8],['outro',2]]},
+  {id:'butterfly',title:'나비의 산책',style:'insect',fx:'water',perf:'shinobu',bpm:88,root:57,scale:[0,2,4,7,9],seed:2207,pluck:'koto',fluteV:.95,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,4,3,0],demon:'꽃밭 혈귀',desc:'나비처럼 살랑살랑. 처음 하는 대원에게 딱!',
+   sections:[['intro',2],['A',8],['B',8],['A',4],['outro',2]]},
   {id:'water',title:'물결의 노래',style:'water',bpm:96,root:50,scale:[0,2,5,7,9],seed:9127,pluck:'koto',fluteV:.95,
    dens:{A:'mid',B:'mid',C:'high'},prog:[0,3,4,2],demon:'안개 혈귀',desc:'잔잔한 물결처럼 흐르는 곡. 긴 호흡이 많다.',
    sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',4],['C',8],['outro',2]]},
+  {id:'mist',title:'안개 속 구름',style:'mist',fx:'water',perf:'muichiro',bpm:108,root:52,scale:[0,2,3,7,8],seed:3319,pluck:'koto',fluteV:.85,
+   dens:{A:'mid',B:'mid',C:'high'},prog:[0,3,2,4],demon:'안개 혈귀',desc:'뭐였더라…? 몽롱한 안개 속을 걷는 곡.',
+   sections:[['intro',4],['A',8],['B',8],['bridge',4],['C',8],['outro',2]]},
+  {id:'stone',title:'바위의 기도',style:'stone',fx:'flame',perf:'gyomei',bpm:118,root:45,scale:[0,2,3,7,9],seed:4421,pluck:'shamisen',fluteV:.7,
+   dens:{A:'mid',B:'high',C:'high'},prog:[0,0,3,4],demon:'바위 혈귀',desc:'묵직한 북소리가 바위처럼 쿵쿵. 힘 있게 쳐요.',
+   sections:[['intro',4],['A',8],['B',8],['A',8],['C',8],['outro',2]]},
   {id:'flame',title:'불꽃의 행진',style:'flame',bpm:128,root:55,scale:[0,2,4,7,9],seed:4403,pluck:'shamisen',fluteV:.6,
    dens:{A:'mid',B:'high',C:'high'},prog:[0,2,3,4],demon:'잿빛 혈귀',desc:'북이 앞장서는 힘찬 행진. 베기 노트가 잦다.',
    sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',4],['C',8],['C',8],['outro',4]]},
+  {id:'love',title:'두근두근 사랑',style:'love',fx:'flame',perf:'mitsuri',bpm:136,root:60,scale:[0,2,4,7,9],seed:5531,pluck:'shamisen',fluteV:.8,
+   dens:{A:'mid',B:'high',C:'high'},prog:[0,4,3,4],demon:'짝사랑 혈귀',desc:'심쿵! 신나고 통통 튀는 미츠리의 노래.',
+   sections:[['intro',4],['A',8],['B',8],['A',8],['C',8],['outro',2]]},
+  {id:'serpent',title:'흰 뱀의 길',style:'serpent',fx:'thunder',perf:'obanai',bpm:144,root:50,scale:[0,1,5,7,8],seed:6637,pluck:'shamisen',fluteV:.6,
+   dens:{A:'mid',B:'mid',C:'high'},prog:[0,1,0,3],demon:'그림자 혈귀',desc:'구불구불 엇박자가 숨어 있어요. 리듬을 잘 들어요.',
+   sections:[['intro',4],['A',8],['B',8],['bridge',4],['C',8],['outro',2]]},
+  {id:'beast',title:'저돌맹진',style:'beast',fx:'flame',perf:'inosuke',bpm:150,root:47,scale:[0,3,5,7,10],seed:7741,pluck:'shamisen',fluteV:.5,
+   dens:{A:'mid',B:'high',C:'high'},prog:[0,3,4,3],demon:'산속 혈귀',desc:'멧돼지처럼 앞만 보고 돌진! 쉬는 곳이 거의 없어요.',
+   sections:[['intro',4],['A',8],['B',8],['C',8],['B',8],['outro',2]]},
+  {id:'water2',title:'잔잔한 수면',style:'water2',fx:'water',perf:'giyu',bpm:156,root:55,scale:[0,2,5,7,9],seed:8853,pluck:'koto',fluteV:.75,
+   dens:{A:'low',B:'mid',C:'high'},prog:[0,3,4,2],demon:'거미 혈귀',desc:'빠르지만 고요하게. 기유처럼 침착하게 쳐요.',
+   sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',4],['C',8],['outro',2]]},
   {id:'thunder',title:'천둥의 질주',style:'thunder',bpm:160,root:52,scale:[0,1,5,7,8],seed:7771,pluck:'shamisen',fluteV:.55,
    dens:{A:'low',B:'mid',C:'mid'},prog:[0,1,3,2],demon:'뇌운 혈귀',desc:'쉬지 않고 몰아치는 빠른 곡. 눈보다 손이 먼저.',
-   sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',8],['C',8],['B',8],['C',8],['outro',4]]}
+   sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',8],['C',8],['B',8],['C',8],['outro',4]]},
+  {id:'wind',title:'질풍의 칼날',style:'wind',fx:'thunder',perf:'sanemi',bpm:170,root:52,scale:[0,2,3,7,8],seed:9967,pluck:'shamisen',fluteV:.55,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,2,3,4],demon:'회오리 혈귀',desc:'거센 바람처럼 몰아쳐요. 170 BPM!',
+   sections:[['intro',4],['A',8],['B',8],['C',8],['B',8],['outro',4]]},
+  {id:'festival',title:'화려한 축제',style:'sound',fx:'flame',perf:'tengen',bpm:180,root:57,scale:[0,2,4,7,9],seed:1187,pluck:'shamisen',fluteV:.6,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,4,3,0],demon:'유곽의 혈귀',desc:'아주 화려하게! 축제 북이 쉴 새 없이. 180 BPM!',
+   sections:[['intro',4],['A',8],['B',8],['C',8],['C',8],['outro',4]]},
+  {id:'hinokami',title:'히노카미 카구라',style:'sun',fx:'flame',perf:'tanjiro',bpm:190,root:50,scale:[0,2,3,7,9],seed:2293,pluck:'shamisen',fluteV:.5,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,3,4,0],demon:'상현 혈귀',desc:'해의 춤을 끝까지! 숨이 찰 만큼 빠른 190 BPM.',
+   sections:[['intro',4],['A',8],['B',8],['A',8],['C',8],['outro',4]]},
+  {id:'godspeed',title:'신속 일섬',style:'thunder2',fx:'thunder',perf:'zenitsu',bpm:200,root:52,scale:[0,1,5,7,8],seed:3391,pluck:'shamisen',fluteV:.5,
+   dens:{A:'low',B:'low',C:'mid'},prog:[0,1,3,2],demon:'상현 육 혈귀',desc:'최고 속도 200 BPM. 번개보다 빠르게! 주(柱) 도전곡.',
+   sections:[['intro',4],['A',8],['B',8],['C',8],['B',8],['C',8],['outro',4]]}
 ];
 /* 곡마다 연주하는 대원 (kchars.js 공용 캐릭터). 라이브러리가 없으면 이름만 쓰고 기존 실루엣으로 그린다 */
 const PERF_FB={water:{id:'tanjiro',name:'카마도 탄지로',short:'탄지로'},flame:{id:'rengoku',name:'렌고쿠 쿄쥬로',short:'렌고쿠'},thunder:{id:'zenitsu',name:'아가츠마 젠이츠',short:'젠이츠'}};
 const KC=(window.KChars&&typeof window.KChars.drawFigure==='function')?window.KChars:null;
 const perfCache={};
 function performer(song){
-  const st=song.style;if(perfCache[st])return perfCache[st];
-  const f=PERF_FB[st];let e=null;
-  if(KC){try{e=KC.byStyle(st);}catch(err){e=null;}}
-  return perfCache[st]={id:e&&e.id||f.id,name:e&&e.name||f.name,short:f.short};
+  const key=song.id;if(perfCache[key])return perfCache[key];
+  const f=PERF_FB[song.style]||{id:song.perf||'tanjiro',name:song.perf||'대원',short:song.perf||'대원'};let e=null;
+  if(KC){try{e=song.perf&&KC.byId?KC.byId(song.perf):KC.byStyle(song.style);}catch(err){e=null;}}
+  const nm=e&&e.name||f.name;
+  return perfCache[key]={id:e&&e.id||f.id,name:nm,short:PERF_FB[song.style]?f.short:nm.split(' ').pop()};
 }
 function bustURL(song,px,expr){
   if(!KC||typeof KC.bustDataURL!=='function')return '';
@@ -481,7 +531,7 @@ function compose(song){
   function drumsBar(type,b0,bi,bars){
     const D=(o,v,acc)=>drm.push({b:b0+o,k:'don',v:v,acc:acc||0});
     const K=(o,v)=>drm.push({b:b0+o,k:'ka',v:v});
-    const last=bi===bars-1, pEnd=bi%4===3, st=song.style;
+    const last=bi===bars-1, pEnd=bi%4===3, st=fxOf(song);
     switch(type){
       case 'intro':
         D(0,bi>=1?.95:.85);if(bi>=1)K(2,.5);if(bi>=2)D(2,.72);
@@ -1091,7 +1141,7 @@ function jagged(x0,y0,x1,y1,segs,amp){
   pts.push([x1,y1]);return pts;
 }
 function slashFx(strong){
-  const style=play.song.style,col=play.color,D=demonPos(),Hh=heroPos();
+  const style=fxOf(play.song),col=play.color,D=demonPos(),Hh=heroPos();
   const cx=D.cx,cy=D.cy,s=D.s;
   if(style==='water'){
     const a0=rand(-2.6,-.4),sw=rand(1.8,2.6)*(Math.random()<.5?1:-1);
@@ -1107,7 +1157,7 @@ function slashFx(strong){
   }
 }
 function specialFx(){
-  const style=play.song.style,col=play.color,D=demonPos(),Hh=heroPos(),s=D.s;
+  const style=fxOf(play.song),col=play.color,D=demonPos(),Hh=heroPos(),s=D.s;
   if(style==='water'){
     for(let i=0;i<4;i++){const a0=-Math.PI+i*1.3;fx.push({k:'arc',t0:vt+i*.07,dur:.6,x:D.cx,y:D.cy,r:s*(.35+i*.12),a0:a0,a1:a0+4.2,col:i%2?'#bfe6ff':col,w:9});}
     fx.push({k:'wave',t0:vt,dur:.9,y:D.cy,col:col});
@@ -1173,7 +1223,7 @@ function drawGround(){
   }
 }
 function drawScene(){
-  const col=play.color,style=play.song.style,h=scene.h,d=scene.d;
+  const col=play.color,style=fxOf(play.song),h=scene.h,d=scene.d;
   drawGround();
   // 대원
   const Hh=heroPos(), hs=Hh.s, hu=hs/100;
@@ -1849,8 +1899,9 @@ window.addEventListener('orientationchange',()=>setTimeout(resize,150));
 resize();
 (function renderCast(){
   const el=$('#title-cast');
+  const seenPf={};
   for(const s of SONGS){
-    const pf=performer(s),u=bustURL(s,112,'normal');if(!u)continue;
+    const pf=performer(s),u=bustURL(s,112,'normal');if(!u||seenPf[pf.id])continue;seenPf[pf.id]=1;
     const f=document.createElement('figure');f.style.setProperty('--c',STYLE[s.style].color);
     f.innerHTML='<img src="'+u+'" alt="" width="52" height="52"><figcaption>'+pf.short+'</figcaption>';
     el.appendChild(f);
