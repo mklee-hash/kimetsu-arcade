@@ -417,12 +417,13 @@ function pickVoice() {
 }
 // who speaks: g = m/f, p = pitch (1 = the voice's own), r = speed, v = which voice when a phone has several
 const CAST = {
-  tanjiro: { g: 'm', p: 0.92, r: 0.98, v: 0, boy: 1.0 },   // boy: pitch used when there is no male voice (a clear boy's voice) zenitsu: { g: 'm', p: 1.08, r: 1.15, v: 1 }, inosuke: { g: 'm', p: 0.8, r: 1.12, v: 2 },
+  tanjiro: { g: 'm', p: 0.92, r: 0.93, v: 0, boy: 0.86 },   // boy: pitch used when there is no male voice (a clear boy's voice) zenitsu: { g: 'm', p: 1.08, r: 1.15, v: 1 }, inosuke: { g: 'm', p: 0.8, r: 1.12, v: 2 },
   rengoku: { g: 'm', p: 0.78, r: 1.02, v: 1 }, giyu: { g: 'm', p: 0.78, r: 0.8, v: 0 }, tengen: { g: 'm', p: 0.82, r: 1.0, v: 2 },
   muichiro: { g: 'm', p: 0.98, r: 0.78, v: 0 }, gyomei: { g: 'm', p: 0.68, r: 0.72, v: 1 }, obanai: { g: 'm', p: 0.86, r: 0.9, v: 2 },
   sanemi: { g: 'm', p: 0.76, r: 1.1, v: 0 },
   nezuko: { g: 'f', p: 1.55, r: 0.85, v: 0 }, shinobu: { g: 'f', p: 1.3, r: 0.9, v: 1 }, mitsuri: { g: 'f', p: 1.5, r: 1.05, v: 2 },
-  kanao: { g: 'f', p: 1.42, r: 0.84, v: 1 }
+  kanao: { g: 'f', p: 1.42, r: 0.84, v: 1 },
+  me: { g: 'f', p: 1.22, r: 1.02, v: 0 }   // the player's own phrase cards: brighter than Tanjiro
 };
 if ('speechSynthesis' in window) { pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch (e) { /* old */ } }
 function say(text, slow, who) {
@@ -1077,7 +1078,7 @@ function scrollToMsg(m) {
 function addMsg(who, r, opts) {
   const m = el('div', 'msg ' + who);
   if (who === 'bot') m.appendChild(faceImg(partner, 40, 'smile'));
-  m.appendChild(bubbleBody(r, who === 'bot' ? Object.assign({ who: partner }, opts || {}) : opts));
+  m.appendChild(bubbleBody(r, Object.assign({ who: who === 'bot' ? partner : 'me' }, opts || {})));
   $('log').appendChild(m);
   scrollToMsg(m);
   return m;
@@ -1111,7 +1112,7 @@ function renderChips() {
   shuffle(CHIPS.slice()).slice(0, 6).forEach(c => {
     const b = el('button', 'chip'); b.type = 'button';
     b.append(el('b', null, c.jp.replace(/\//g, '')), el('small', null, D.pron(c.kana) + ' · ' + c.ko));
-    b.addEventListener('click', () => { sfx.tap(); say(c.jp); userSend(c.jp.replace(/\//g, ''), c); });
+    b.addEventListener('click', () => { sfx.tap(); say(c.jp, false, 'me'); userSend(c.jp.replace(/\//g, ''), c); });
     box.appendChild(b);
   });
 }
