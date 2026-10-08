@@ -210,11 +210,11 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
 <div class="sheet" id="sheet" hidden><div class="panel" id="sheet-body"></div></div>
 <div class="count" id="count" hidden></div>
 
-<script src="kchars.js?v=20261009005702"></script>
-<script src="kprofile.js?v=20261009005702"></script>
-<script src="ksync.js?v=20261009005702"></script>
-<script src="nihongo-data.js?v=20261009005702"></script>
-<script src="karaoke-songs.js?v=20261009005702"></script>
+<script src="kchars.js?v=20261009010326"></script>
+<script src="kprofile.js?v=20261009010326"></script>
+<script src="ksync.js?v=20261009010326"></script>
+<script src="nihongo-data.js?v=20261009010326"></script>
+<script src="karaoke-songs.js?v=20261009010326"></script>
 <script>
 (() => {
 'use strict';
@@ -492,10 +492,13 @@ function sing(song, opts) {
         const x = px + (n.beat - beat) * ppb, wd = Math.max(6, n.dur * ppb - 4); if (x > w || x + wd < 0) return;
         g.fillStyle = n.grade === 'perfect' ? '#ffe14d' : n.grade === 'good' ? '#5ed27a' : n.grade === 'ok' ? '#a58bdc' : n.grade === 'miss' ? 'rgba(216,52,63,.5)' : n === curNote ? '#ffffff' : 'rgba(255,143,200,.75)';
         const y = ym(n.midi) - 9; g.beginPath(); if (g.roundRect) g.roundRect(x, y, wd, 18, 8); else g.rect(x, y, wd, 18); g.fill();
-        g.fillStyle = 'rgba(7,8,26,.9)'; g.textBaseline = 'middle';
-        g.font = '700 12px "Zen Maru Gothic",sans-serif'; g.fillText(n.syl, x + 4, y + 9.5);
+        // white letters with a dark outline: readable on the pink bar and on the dark lane when they spill over
+        g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 3.5; g.strokeStyle = 'rgba(7,8,26,.95)';
+        g.font = '700 13px "Zen Maru Gothic",sans-serif';
+        g.strokeText(n.syl, x + 4, y + 9.5); g.fillStyle = '#ffffff'; g.fillText(n.syl, x + 4, y + 9.5);
         const kw = g.measureText(n.syl).width;
-        g.font = '700 11px "Gowun Dodum",sans-serif'; g.fillText(n.hg, x + 6 + kw, y + 9.5);
+        g.font = '700 12px "Gowun Dodum",sans-serif';
+        g.strokeText(n.hg, x + 6 + kw, y + 9.5); g.fillStyle = '#ffe14d'; g.fillText(n.hg, x + 6 + kw, y + 9.5);
       });
       g.fillStyle = '#ffe14d';
       trail.forEach(p => { const x = px + (p.b - beat) * ppb; if (x < 0) return; g.globalAlpha = Math.max(0.15, 1 - (beat - p.b) / 3); g.beginPath(); g.arc(x, ym(p.m), 3.5, 0, 6.3); g.fill(); });
