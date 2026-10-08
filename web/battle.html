@@ -260,7 +260,7 @@ function buildQuestions(seed, upto) {
   const R = rng(seed), pool = [];
   CHS.slice(0, upto).forEach(c => {
     c.words.forEach(w => pool.push({ jp: w[0], kana: w[1], ko: w[2] }));
-    c.lines.forEach(l => { if (l[0].split('/').length <= 3) pool.push({ jp: l[0].replace(/\//g, ''), kana: l[1].replace(/\//g, ''), ko: l[2] }); });
+    c.lines.forEach(l => { if (l[0].split('/').length <= 3) pool.push({ jp: l[0].replace(/\//g, ''), kana: l[1], ko: l[2] }); });
   });
   pool.forEach(p => { p.pron = D.pron(p.kana); });
   const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
