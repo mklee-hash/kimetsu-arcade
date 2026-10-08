@@ -301,6 +301,7 @@ a.arcade-back:hover{background:#ffc766}
   <div class="wrap">
     <div class="topbar"><button class="btn small backbtn" data-go="home" type="button">← 처음으로</button><span class="grow"></span><span class="hint">누구와 이야기할까요?</span></div>
     <div class="partners" id="partners" role="group" aria-label="대화 상대"></div>
+    <p class="hint" id="partners-more"></p>
     <div class="log" id="log" aria-live="polite"></div>
     <div class="chatfoot">
       <div class="hint" id="chip-hint">이렇게 말해 볼까요? (눌러서 보내기)</div>
@@ -321,10 +322,10 @@ a.arcade-back:hover{background:#ffc766}
 
 <div id="toasts" aria-live="polite"></div>
 
-<script src="kchars.js?v=20261009013433"></script>
-<script src="kprofile.js?v=20261009013433"></script>
-<script src="ksync.js?v=20261009013433"></script>
-<script src="nihongo-data.js?v=20261009013433"></script>
+<script src="kchars.js?v=20261009013643"></script>
+<script src="kprofile.js?v=20261009013643"></script>
+<script src="ksync.js?v=20261009013643"></script>
+<script src="nihongo-data.js?v=20261009013643"></script>
 <script>
 (() => {
 'use strict';
@@ -379,7 +380,7 @@ const seenCount = () => Object.keys(S.seen).filter(k => BY_KEY[k]).length;
 const cleared = () => CHS.filter(c => (S.stars[c.id] || 0) > 0).length;
 function unlocked(i) { return i === 0 || (S.stars[CHS[i - 1].id] || 0) > 0; }
 function metChars() {
-  const set = new Set(['tanjiro']);
+  const set = new Set(['tanjiro', 'zenitsu', 'inosuke', 'nezuko']);   // the first friends can always talk
   CHS.forEach(c => { if ((S.stars[c.id] || 0) > 0) { set.add(c.char); c.lines.forEach(l => set.add(l[3] || c.char)); } });
   return Object.keys(NAME).filter(id => set.has(id));
 }
@@ -830,7 +831,7 @@ function finishQuiz() {
       r.appendChild(rw);
       const nxt = CHS[Q.ci + 1];
       if (nxt) r.appendChild(el('p', null, '🔓 ' + (Q.ci + 2) + '장 「' + nxt.title + '」이(가) 열렸어요!'));
-      const met = [c.char].concat(c.lines.map(l => l[3])).filter((v, k, a) => v && a.indexOf(v) === k && v !== 'tanjiro');
+      const met = [c.char].concat(c.lines.map(l => l[3])).filter((v, k, a) => v && a.indexOf(v) === k && !['tanjiro', 'zenitsu', 'inosuke', 'nezuko'].includes(v));
       if (met.length) r.appendChild(el('p', 'hint', '💬 이제 ' + met.map(m => NAME[m]).join(', ') + '와(과) 대화할 수 있어요!'));
     }
     save(); checkBadges();
@@ -1068,6 +1069,8 @@ function renderChips() {
 }
 function renderPartners() {
   const box = $('partners'); box.textContent = '';
+  const left = Object.keys(NAME).length - metChars().length;
+  $('partners-more').textContent = left > 0 ? '🔒 주(柱)와 카나오 등 ' + left + '명은 수련 지도에서 만나면 함께 이야기할 수 있어요.' : '모든 대원과 이야기할 수 있어요! 🎉';
   metChars().forEach(id => {
     const b = el('button', 'partner'); b.type = 'button'; b.setAttribute('aria-pressed', String(id === partner));
     b.append(faceImg(id, 52, 'smile'), el('span', null, NAME[id]));
