@@ -329,6 +329,18 @@
   .chip.add.on .ph { border-color: var(--dawn); color: var(--dawn); }
   .chip.editing .chip-edit { background: var(--wisteria); color: var(--ink); }
   .guest-note { margin: 8px 0 0; font-size: 13px; color: var(--paper-dim); }
+  .sync { margin-top: 12px; border-top: 1px dashed rgba(239, 230, 210, 0.2); padding-top: 10px; }
+  .sync summary { cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; list-style: none; }
+  .sync summary::-webkit-details-marker { display: none; }
+  .sync summary .st { margin-left: auto; font-size: 13px; color: var(--paper-dim); }
+  .sync summary .st.ok { color: #7ee08f; }
+  .sync summary .st.bad { color: #ff8a8a; }
+  .sync-body { display: grid; gap: 10px; padding: 10px 0 2px; font-size: 14px; color: var(--paper-dim); }
+  .sync-code { font-family: ui-monospace, Consolas, monospace; font-size: 26px; letter-spacing: 0.12em; color: var(--dawn); background: rgba(239, 230, 210, 0.07); padding: 6px 12px; justify-self: start; user-select: all; }
+  .sync-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sync-row input { font: inherit; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; width: 11em; padding: 8px 10px; border: 0; background: rgba(239, 230, 210, 0.1); color: var(--paper); }
+  .sync-row .pbtn.ghost { color: var(--paper); box-shadow: inset 0 0 0 1px rgba(239, 230, 210, 0.35); }
+  .sync .msg { min-height: 1.3em; color: var(--paper); }
 
   .ppanel {
     margin-top: 12px;
@@ -463,6 +475,34 @@
         </div>
       </div>
     </form>
+
+    <details class="sync" id="sync" hidden>
+      <summary><span aria-hidden="true">☁️</span> 기록 동기화 <span class="st" id="syncSt">꺼짐</span></summary>
+      <div class="sync-body">
+        <div id="syncOff">
+          <p>다른 휴대폰이나 브라우저에서도 같은 기록으로 하려면 <b>가족 코드</b>를 써요.</p>
+          <div class="sync-row" style="margin-top:8px">
+            <button type="button" class="pbtn primary" id="syncNew">새 가족 코드 만들기</button>
+          </div>
+          <div class="sync-row" style="margin-top:8px">
+            <input id="syncIn" maxlength="9" placeholder="ABCD-EFGH" autocomplete="off" aria-label="가족 코드">
+            <button type="button" class="pbtn ghost" id="syncJoin">코드로 연결</button>
+          </div>
+          <p style="margin-top:6px;font-size:12px">이미 다른 기기에서 코드를 만들었다면 그 코드를 넣어요. 연결하면 가족 기록을 이 기기로 불러와요.</p>
+        </div>
+        <div id="syncOn" hidden>
+          <p>이 기기는 아래 가족 코드로 기록을 자동으로 맞춰요. 다른 기기에서 <b>코드로 연결</b>에 이 코드를 넣어 주세요.</p>
+          <div class="sync-code" id="syncCode"></div>
+          <div class="sync-row">
+            <button type="button" class="pbtn ghost" id="syncNow">지금 맞추기</button>
+            <button type="button" class="pbtn ghost" id="syncCopy">코드 복사</button>
+            <button type="button" class="pbtn danger-link" id="syncLeave">이 기기 연결 끊기</button>
+          </div>
+          <p style="font-size:12px">코드를 아는 사람은 기록을 볼 수 있으니 가족끼리만 나눠요.</p>
+        </div>
+        <p class="msg" id="syncMsg" aria-live="polite"></p>
+      </div>
+    </details>
   </section>
 
   <ul class="games">
@@ -540,6 +580,7 @@
 
 <script src="kchars.js"></script>
 <script src="kprofile.js"></script>
+<script src="ksync.js"></script>
 <script>
 // Player picker + rank ladder + perk panel, all read through KProfile (current profile).
 (() => {
@@ -702,6 +743,8 @@
   renderAll();
   // Another tab (or a game in another tab) changed records/profiles.
   window.addEventListener('storage', () => { if (mode == null) renderAll(); else renderRanks(); });
+  // Records arrived from another device (family-code sync): show them even if the sign-up panel is open.
+  window.addEventListener('ksync:applied', () => { if (mode === 'add' && KP.list().length) closePanel(); renderAll(); });
   window.addEventListener('pageshow', ev => { if (ev.persisted) renderAll(); });
 })();
 </script>
@@ -1323,6 +1366,57 @@
   if (prof) prof.addEventListener('click', later);
   window.addEventListener('storage', later);
   window.addEventListener('pageshow', ev => { if (ev.persisted) renderAll(); });
+})();
+</script>
+<script>
+// ☁️ family-code sync panel (ksync.js)
+(() => {
+  const KS = window.KSync, box = document.getElementById('sync');
+  if (!KS || !box || !KS.configured()) return;
+  box.hidden = false;
+  const $ = id => document.getElementById(id);
+  const msg = t => { $('syncMsg').textContent = t || ''; };
+  const ago = ms => { const s = Math.round((Date.now() - ms) / 1000); return s < 10 ? '방금' : s < 60 ? s + '초 전' : s < 3600 ? Math.round(s / 60) + '분 전' : Math.round(s / 3600) + '시간 전'; };
+  function render(st) {
+    st = st || KS.status();
+    const on = !!KS.code(), el = $('syncSt');
+    $('syncOff').hidden = on; $('syncOn').hidden = !on; $('syncCode').textContent = KS.code();
+    el.className = 'st';
+    if (!on) el.textContent = '꺼짐';
+    else if (st.state === 'busy') el.textContent = '맞추는 중…';
+    else if (st.state === 'error') { el.textContent = '연결 안 됨'; el.classList.add('bad'); }
+    else { el.textContent = '켜짐 · ' + (st.last ? ago(st.last) + ' 저장' : '대기'); el.classList.add('ok'); }
+  }
+  KS.onStatus(render); render();
+  setInterval(() => render(), 15000);
+  $('syncNew').addEventListener('click', async () => {
+    msg('만드는 중…');
+    try { const c = await KS.create(); msg('가족 코드 ' + c + ' 를 만들었어요! 다른 기기에서 이 코드를 넣어 주세요.'); box.open = true; }
+    catch (e) { msg('만들지 못했어요: ' + (e.message || e) + ' 인터넷 연결을 확인해 주세요.'); }
+    render();
+  });
+  $('syncJoin').addEventListener('click', async () => {
+    const v = $('syncIn').value;
+    if (!v.trim()) { msg('가족 코드를 적어 주세요.'); $('syncIn').focus(); return; }
+    msg('연결하는 중…');
+    try {
+      const ok = await KS.join(v);
+      msg(ok ? '연결했어요! 가족 기록을 불러왔어요.' : '그런 가족 코드가 없어요. 글자를 다시 확인해 주세요.');
+    } catch (e) { msg('연결하지 못했어요: ' + (e.message || e)); }
+    render();
+  });
+  $('syncIn').addEventListener('input', e => {
+    const s = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+    e.target.value = s.length > 4 ? s.slice(0, 4) + '-' + s.slice(4) : s;
+  });
+  $('syncNow').addEventListener('click', async () => { msg(''); const r = await KS.syncNow(); msg(r && r.error ? '연결이 안 돼요. 잠시 뒤 다시 해 볼게요.' : '다 맞췄어요!'); });
+  $('syncCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(KS.code()); msg('코드를 복사했어요.'); } catch (e) { msg('코드: ' + KS.code()); }
+  });
+  $('syncLeave').addEventListener('click', () => {
+    if (!confirm('이 기기의 동기화를 끌까요? 지금까지의 기록은 이 기기에 그대로 남아요.')) return;
+    KS.leave(); msg('이 기기 연결을 끊었어요.'); render();
+  });
 })();
 </script>
 </body>
