@@ -171,7 +171,7 @@ a.arcade-back:hover{background:#ffc766}
 .partner img{width:52px;height:52px;border-radius:50%;box-shadow:0 0 0 2px transparent}
 .partner[aria-pressed="true"]{color:var(--paper)}
 .partner[aria-pressed="true"] img{box-shadow:0 0 0 3px var(--dawn)}
-.log{flex:1;display:flex;flex-direction:column;gap:10px;padding:6px 0}
+.log{flex:1;display:flex;flex-direction:column;gap:10px;padding:6px 0 24px}
 .msg{max-width:88%;display:flex;gap:8px;align-items:flex-end}
 .msg img{width:40px;height:40px;border-radius:50%;flex:0 0 auto}
 .bubble{padding:10px 12px;border-radius:14px;background:rgba(239,230,210,.1);display:flex;flex-direction:column;gap:2px;line-height:1.35}
@@ -322,10 +322,10 @@ a.arcade-back:hover{background:#ffc766}
 
 <div id="toasts" aria-live="polite"></div>
 
-<script src="kchars.js?v=20261009014343"></script>
-<script src="kprofile.js?v=20261009014343"></script>
-<script src="ksync.js?v=20261009014343"></script>
-<script src="nihongo-data.js?v=20261009014343"></script>
+<script src="kchars.js?v=20261009015118"></script>
+<script src="kprofile.js?v=20261009015118"></script>
+<script src="ksync.js?v=20261009015118"></script>
+<script src="nihongo-data.js?v=20261009015118"></script>
 <script>
 (() => {
 'use strict';
@@ -421,8 +421,8 @@ const CAST = {
   rengoku: { g: 'm', p: 0.78, r: 1.02, v: 1 }, giyu: { g: 'm', p: 0.78, r: 0.8, v: 0 }, tengen: { g: 'm', p: 0.82, r: 1.0, v: 2 },
   muichiro: { g: 'm', p: 0.98, r: 0.78, v: 0 }, gyomei: { g: 'm', p: 0.68, r: 0.72, v: 1 }, obanai: { g: 'm', p: 0.86, r: 0.9, v: 2 },
   sanemi: { g: 'm', p: 0.76, r: 1.1, v: 0 },
-  nezuko: { g: 'f', p: 1.3, r: 0.85, v: 0 }, shinobu: { g: 'f', p: 1.1, r: 0.88, v: 1 }, mitsuri: { g: 'f', p: 1.25, r: 1.08, v: 2 },
-  kanao: { g: 'f', p: 1.15, r: 0.82, v: 1 }
+  nezuko: { g: 'f', p: 1.55, r: 0.85, v: 0 }, shinobu: { g: 'f', p: 1.3, r: 0.9, v: 1 }, mitsuri: { g: 'f', p: 1.5, r: 1.05, v: 2 },
+  kanao: { g: 'f', p: 1.42, r: 0.84, v: 1 }
 };
 if ('speechSynthesis' in window) { pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch (e) { /* old */ } }
 function say(text, slow, who) {
@@ -999,9 +999,10 @@ const RULES = [
   ['strong', /강해|세다|멋(있|져|지)|최고|짱|대단|つよい|強い|かっこいい|すごい/],
   ['like', /좋아해|사랑해|좋아요|すき|好き/],
   ['count', /숫자|세어|세\s*봐|세줘|かぞえ|数え/],
+  ['scared', /たすけて|助けて|도와줘|살려/],
   ['weather', /날씨|비\s*와|맑|해가|てんき|天気|はれ/],
   ['play', /놀자|놀아|게임|あそ|遊/],
-  ['catch', /명대사|대사|한\s*마디|말해\s*봐|해\s*봐/],
+  ['catch', /명대사|대사|한\s*마디|말해\s*봐|해\s*봐|めいぜりふ|名台詞/],
   ['yes', /^(응|어|네|예|그래|좋아|맞아|はい|うん|ええ)/],
   ['no', /^(아니|싫어|ㄴㄴ|いいえ|いや|ううん)/]
 ];
@@ -1010,7 +1011,14 @@ const CHIPS = [
   R('ありがとう！', 'ありがとー！', '고마워!'), R('好きな/食べ物は？', 'すきな/たべものわ？', '좋아하는 음식은?'), R('何歳？', 'なんさい？', '몇 살이에요?'),
   R('呼吸を/見せて！', 'こきゅーお/みせて！', '호흡을 보여 줘!'), R('鬼だ！', 'おにだ！', '혈귀다!'), R('眠い…', 'ねむい…', '졸려…'),
   R('一緒に/遊ぼう！', 'いっしょに/あそぼー！', '같이 놀자!'), R('かっこいい！', 'かっこいい！', '멋지다!'), R('またね！', 'またね！', '또 봐!'),
-  R('かわいい！', 'かわいい！', '귀여워!'), R('お腹が/すいた。', 'おなかが/すいた。', '배고파.'), R('怖いよ。', 'こわいよ。', '무서워.')
+  R('かわいい！', 'かわいい！', '귀여워!'), R('お腹が/すいた。', 'おなかが/すいた。', '배고파.'), R('怖いよ。', 'こわいよ。', '무서워.'),
+  R('おはよう！', 'おはよー！', '좋은 아침!'), R('こんばんは！', 'こんばんわ！', '좋은 저녁!'), R('はじめまして！', 'はじめまして！', '처음 뵙겠습니다!'),
+  R('すごい！', 'すごい！', '대단해!'), R('強いね！', 'つよいね！', '세다!'), R('大好き！', 'だいすき！', '정말 좋아!'),
+  R('何して/遊ぶ？', 'なにして/あそぶ？', '뭐 하고 놀까?'), R('おにぎり/食べたい！', 'おにぎり/たべたい！', '주먹밥 먹고 싶어!'), R('おやすみ！', 'おやすみ！', '잘 자!'),
+  R('助けて！', 'たすけて！', '도와줘!'), R('全集中！', 'ぜんしゅーちゅー！', '전집중!'), R('ごめんね。', 'ごめんね。', '미안해.'),
+  R('いい/天気/だね。', 'いい/てんき/だね。', '날씨 좋다.'), R('数えて！', 'かぞえて！', '숫자 세어 줘!'), R('疲れた…', 'つかれた…', '피곤해…'),
+  R('うん！', 'うん！', '응!'), R('ううん。', 'ううん。', '아니.'), R('名台詞を/言って！', 'めいぜりふお/いって！', '명대사 말해 줘!'),
+  R('さようなら！', 'さよーなら！', '안녕히 가세요!'), R('きれい！', 'きれい！', '예쁘다!')
 ];
 const AGE_KANA = ['', 'いっさい', 'にさい', 'さんさい', 'よんさい', 'ごさい', 'ろくさい', 'ななさい', 'はっさい', 'きゅーさい', 'じゅっさい',
   'じゅーいっさい', 'じゅーにさい', 'じゅーさんさい', 'じゅーよんさい', 'じゅーごさい', 'じゅーろくさい', 'じゅーななさい', 'じゅーはっさい', 'じゅーきゅーさい', 'はたち'];
@@ -1057,18 +1065,33 @@ function bubbleBody(r, opts) {
   if (hasJpAny(jpText)) { const who = opts && opts.who; const s = el('button', 'say', '🔊 다시 듣기'); s.type = 'button'; s.addEventListener('click', () => say(jpText, false, who)); b.appendChild(s); }
   return b;
 }
+function scrollToMsg(m) {
+  const target = () => {
+    const foot = document.querySelector('.chatfoot'), pad = (foot ? foot.offsetHeight : 0) + 16;
+    return Math.max(0, m.getBoundingClientRect().bottom + window.scrollY - (window.innerHeight - pad));
+  };
+  window.scrollTo({ top: target(), behavior: 'smooth' });
+  // if a smooth scroll gets cut short, finish it so the message is never hidden behind the phrase cards
+  setTimeout(() => { if (m.isConnected && Math.abs(window.scrollY - target()) > 4) window.scrollTo({ top: target() }); }, 500);
+}
 function addMsg(who, r, opts) {
   const m = el('div', 'msg ' + who);
   if (who === 'bot') m.appendChild(faceImg(partner, 40, 'smile'));
   m.appendChild(bubbleBody(r, who === 'bot' ? Object.assign({ who: partner }, opts || {}) : opts));
   $('log').appendChild(m);
-  m.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  scrollToMsg(m);
   return m;
 }
 function botSay(r) {
   const typing = el('div', 'msg bot'); typing.appendChild(faceImg(partner, 40)); const bb = el('div', 'bubble'); bb.appendChild(el('span', 'typing', '···')); typing.appendChild(bb);
-  $('log').appendChild(typing); typing.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  setTimeout(() => { typing.remove(); addMsg('bot', r); say(r.jp, false, partner); renderChips(); }, 650);
+  $('log').appendChild(typing); scrollToMsg(typing);
+  const t0 = Date.now();
+  const go = () => {
+    const busy = 'speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending);
+    if (busy && Date.now() - t0 < 4000) { setTimeout(go, 150); return; }
+    setTimeout(() => { typing.remove(); const m = addMsg('bot', r); say(r.jp, false, partner); renderChips(); scrollToMsg(m); }, busy ? 0 : 450);
+  };
+  setTimeout(go, 700);
 }
 function userSend(text, chip) {
   text = String(text || '').trim(); if (!text) return;
@@ -1085,7 +1108,7 @@ function userSend(text, chip) {
 }
 function renderChips() {
   const box = $('chips'); box.textContent = '';
-  shuffle(CHIPS.slice()).slice(0, 5).forEach(c => {
+  shuffle(CHIPS.slice()).slice(0, 6).forEach(c => {
     const b = el('button', 'chip'); b.type = 'button';
     b.append(el('b', null, c.jp.replace(/\//g, '')), el('small', null, D.pron(c.kana) + ' · ' + c.ko));
     b.addEventListener('click', () => { sfx.tap(); say(c.jp); userSend(c.jp.replace(/\//g, ''), c); });
