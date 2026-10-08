@@ -290,8 +290,17 @@
   }
   .chip-pick .ph { display: grid; place-items: center; font-size: 24px; color: var(--paper-dim); border: 2px dashed rgba(239, 230, 210, 0.35); background: transparent; }
   .chip-name { max-width: 62px; font-size: 13px; line-height: 1.2; text-align: center; word-break: break-all; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .chip-rank { font-size: 12px; line-height: 1; color: var(--paper-dim); }
-  .chip-rank b { font-weight: 400; font-size: 15px; color: var(--dawn); }
+  .chip-pick { width: 78px; }
+  .chip-name { max-width: 74px; }
+  .chip-rank { display: grid; justify-items: center; gap: 3px; font-size: 12px; line-height: 1.1; color: var(--paper-dim); }
+  .chip-rank .lv { color: var(--paper); font-size: 12px; }
+  .chip-rank .lv b { font-weight: 700; font-size: 16px; color: var(--dawn); }
+  .chip-rank .rk b { font-weight: 400; font-size: 14px; color: var(--dawn); }
+  .chip-rank .pips { display: flex; gap: 2px; }
+  .chip-rank .pips i { width: 4px; height: 6px; background: rgba(239, 230, 210, 0.18); border-radius: 1px; }
+  .chip-rank .pips i.f { background: var(--dawn); }
+  .chip-rank .pips i.top.f { background: #ff5a4a; }
+  .chip-rank.none .lv b { color: var(--paper-dim); }
   .chip.on .chip-pick {
     border-color: var(--dawn);
     background: rgba(242, 178, 74, 0.16);
@@ -609,8 +618,15 @@
       const r = KP.rank(p.id);
       b.appendChild(face(p.avatar, 50));
       b.appendChild(el('span', 'chip-name', p.name));
-      const rk = el('span', 'chip-rank'); rk.append('계급 '); rk.appendChild(el('b', null, r.char)); b.appendChild(rk);
-      b.setAttribute('aria-label', p.name + ', 계급 ' + r.char + (cur && cur.id === p.id ? ', 지금 선택됨' : ''));
+      // simple level read-out: Lv.N (1–11) + rank char + 11 pips
+      const lvN = Math.max(0, r.idx) + 1;
+      const rk = el('span', 'chip-rank' + (r.idx < 0 ? ' none' : ''));
+      const lv = el('span', 'lv'); lv.append('Lv.'); lv.appendChild(el('b', null, String(lvN))); rk.appendChild(lv);
+      const rc = el('span', 'rk'); rc.appendChild(el('b', null, r.char)); rc.append(' ' + r.read); rk.appendChild(rc);
+      const pips = el('span', 'pips'); pips.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < KP.RANKS.length; i++) pips.appendChild(el('i', (i < lvN && r.idx >= 0 ? 'f' : '') + (i === KP.RANKS.length - 1 ? ' top' : '')));
+      rk.appendChild(pips); b.appendChild(rk);
+      b.setAttribute('aria-label', p.name + ', 레벨 ' + lvN + ', 계급 ' + r.read + (cur && cur.id === p.id ? ', 지금 선택됨' : ''));
       b.addEventListener('click', () => { KP.setCurrent(p.id); if (mode === 'edit') closePanel(); renderAll(); });
       const e = el('button', 'chip-edit', '✎'); e.type = 'button';
       e.setAttribute('aria-label', p.name + ' 고치기');

@@ -12,6 +12,8 @@
  *       { id:'inosuke', name:'하시비라 이노스케', style:'beast',  color:'#9fb4c8', title:'짐승의 호흡' }
  *       { id:'nezuko',  name:'카마도 네즈코',   style:'blood',   color:'#ff7fb0', title:'혈귀술' }
  *       { id:'shinobu', name:'코쵸우 시노부',   style:'insect',  color:'#b58cff', title:'벌레의 호흡' }
+ *       + the other hashira (주): giyu (water2), tengen (sound), mitsuri (love), muichiro (mist),
+ *         gyomei (stone), obanai (serpent), sanemi (wind)
  *     Iterate this list to offer every character (new entries are only ever appended).
  *
  *   KChars.byStyle(style)          -> entry for 'water'|'flame'|'thunder'|'beast'|'blood'|'insect' (or null)
@@ -232,7 +234,8 @@
       var lx = fx * 0.5 * side;
       eyeShape(ctx, sl); ctx.fillStyle = '#fff'; ctx.fill();
       ctx.save(); ctx.clip();
-      ell(ctx, lx, EH * 0.12, EW * 0.74, EH * 0.95); ctx.fillStyle = grad(c.id + 'iris', c.irisGrad); ctx.fill();
+      var rIris = side > 0 && c.irisGradR;
+      ell(ctx, lx, EH * 0.12, EW * 0.74, EH * 0.95); ctx.fillStyle = grad(c.id + (rIris ? 'irisR' : 'iris'), rIris ? c.irisGradR : c.irisGrad); ctx.fill();
       if (!LOD) { ctx.lineWidth = LW * 0.8; ctx.strokeStyle = c.irisLine; ctx.stroke(); }
       ell(ctx, lx, EH * 0.2, EW * c.pupil, EH * c.pupil * 1.3); ctx.fillStyle = c.pupilCol; ctx.fill();
       ell(ctx, lx - side * EW * 0.28, -EH * 0.25, EW * 0.25, EH * 0.23); ctx.fillStyle = c.eyeHi || '#fff'; ctx.fill();
@@ -842,7 +845,296 @@
     blade: 'needle', bladeLen: 2.25, guard: '#8a4fd8', hilt: '#2a2238', trailMix: 0.3
   };
 
-  var LIST = [C.tanjiro, C.zenitsu, C.rengoku, C.inosuke, C.nezuko, C.shinobu].map(function (c) {
+  // =====================================================================
+  //  HASHIRA (주) — the remaining pillars
+  // =====================================================================
+  function patPlain(col) { return function (ctx, x0, y0, x1, y1) { ctx.fillStyle = col; ctx.fillRect(x0, y0, x1 - x0, y1 - y0); }; }
+  // Tortoiseshell hexagons (kikkō) in yellow / green / orange.
+  function patKikko(ctx, x0, y0, x1, y1, r) {
+    ctx.fillStyle = '#2b2a1c'; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    var w = r * 1.732, dy = r * 1.5, cols = ['#e2c44c', '#3f8f5e', '#d9762e'];
+    var j0 = Math.floor(y0 / dy) - 1, j1 = Math.ceil(y1 / dy) + 1;
+    for (var j = j0; j < j1; j++) {
+      var off = (j & 1) ? w / 2 : 0;
+      for (var i = Math.floor(x0 / w) - 1; i * w < x1 + w; i++) {
+        var cx = i * w + off, cy = j * dy, rr = r * 0.86;
+        ctx.beginPath();
+        for (var k = 0; k < 6; k++) { var a = Math.PI / 6 + k * Math.PI / 3; ctx[k ? 'lineTo' : 'moveTo'](cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+        ctx.closePath(); ctx.fillStyle = cols[(((i + (j & 1) * 2) % 3) + 3) % 3]; ctx.fill();
+      }
+    }
+  }
+  // Giyu's half-and-half haori: plain wine red on one side, kikkō on the other.
+  function patGiyu(ctx, x0, y0, x1, y1, hem, sc) {
+    if (x0 < 0) { ctx.fillStyle = '#7a1f2b'; ctx.fillRect(x0, y0, Math.min(x1, 0) - x0, y1 - y0); }
+    if (x1 > 0) {
+      var xa = Math.max(x0, 0);
+      ctx.save(); ctx.beginPath(); ctx.rect(xa, y0, x1 - xa, y1 - y0); ctx.clip();
+      patKikko(ctx, xa, y0, x1, y1, 0.17 * (sc || 1)); ctx.restore();
+    }
+  }
+  function patStripes(ctx, x0, y0, x1, y1, w) {
+    ctx.fillStyle = '#f2f2ee'; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    ctx.fillStyle = '#1a1a24';
+    for (var x = Math.floor(x0 / (2 * w)) * 2 * w; x < x1; x += 2 * w) ctx.fillRect(x, y0, w, y1 - y0);
+  }
+  function roundBack(ctx) {
+    ctx.beginPath(); ctx.moveTo(-1.16, 0.6);
+    ctx.bezierCurveTo(-1.44, -0.5, -1.2, -1.5, 0, -1.5);
+    ctx.bezierCurveTo(1.2, -1.5, 1.44, -0.5, 1.16, 0.6);
+    ctx.lineTo(0, 0.35); ctx.closePath();
+  }
+  function bangs(pts, b) {
+    return function (ctx, edgeOnly) {
+      curvy(ctx, pts, b, true);
+      if (edgeOnly) return;
+      ctx.bezierCurveTo(-1.2, -1.5, 1.2, -1.5, pts[0], pts[1]);
+      ctx.closePath();
+    };
+  }
+  function irisLG(a, b, c2) { return function () { return lg(0, -EH, 0, EH * 1.1, [[0, a], [0.5, b], [1, c2]]); }; }
+
+  // ---------------- GIYU (물) ----------------
+  C.giyu = {
+    id: 'giyu', name: '토미오카 기유', style: 'water2', color: '#3d7fe0', title: '물의 호흡 · 수주',
+    gradBack: function () { return rg(0, -0.2, 0.4, 0, -0.2, 1.65, [[0, '#0b0d14'], [0.65, '#151a28'], [1, '#2c3a58']]); },
+    gradFront: function () { return lg(0, -1.2, 0, 0.4, [[0, '#0b0d14'], [0.6, '#151b2a'], [1, '#2e3d5c']]); },
+    pathBack: function (ctx) {
+      curvy(ctx, [-1.0, 0.5, -1.28, 0.3, -1.12, 0.0, -1.4, -0.3, -1.14, -0.55, -1.32, -0.95, -0.86, -0.98, -0.8, -1.42, -0.4, -1.18,
+        -0.1, -1.52, 0.18, -1.2, 0.56, -1.46, 0.66, -1.08, 1.1, -1.18, 1.04, -0.78, 1.4, -0.6, 1.14, -0.36, 1.36, 0.0, 1.1, 0.14,
+        1.26, 0.46, 1.0, 0.5, 0, 0.3], 0.1);
+    },
+    pathFront: bangs([1.08, -0.1, 1.0, 0.4, 0.86, -0.25, 0.7, 0.12, 0.52, -0.42, 0.32, -0.02, 0.16, -0.5, 0.0, -0.08,
+      -0.18, -0.55, -0.36, -0.05, -0.56, -0.45, -0.74, 0.1, -0.86, -0.25, -1.0, 0.4, -1.08, -0.1], 0.05),
+    hairBack: function (ctx, t) {
+      SWAY = Math.sin((t || 0) * 2.4) * 0.035;
+      // low spiky ponytail peeking out behind the right shoulder
+      curvy(ctx, [0.3, 0.2, 0.75, 0.45, 1.05, 0.95, 1.3, 1.5, 1.0, 1.32, 0.98, 1.75, 0.74, 1.3, 0.5, 1.5, 0.48, 0.9], 0.08);
+      fs(ctx, grad('giyuTail', function () { return lg(0, 0.2, 0, 1.7, [[0, '#0b0d14'], [1, '#2c3a58']]); }), 1);
+    },
+    irisGrad: irisLG('#0a1a3a', '#2a5aa8', '#7ab4ff'),
+    irisLine: '#0a1a3a', pupilCol: '#060c1a', pupil: 0.26, eyeHi: 'rgba(255,255,255,0.8)',
+    brow: browThin('#141a28'),
+    mouth: 'line',
+    haori: function (ctx, x0, y0, x1, y1, hem, sc) { patGiyu(ctx, x0, y0, x1, y1, hem, sc); },
+    sleeve: '#7a1f2b',
+    blade: 'plain', bladeCol: '#2f66c8', guard: '#1a1a1a', hilt: '#2a2a46', trailMix: 0.4
+  };
+
+  // ---------------- TENGEN (소리) ----------------
+  C.tengen = {
+    id: 'tengen', name: '우즈이 텐겐', style: 'sound', color: '#ff5aa8', title: '소리의 호흡 · 음주',
+    gradBack: function () { return rg(0, -0.3, 0.3, 0, -0.3, 1.8, [[0, '#ffffff'], [0.6, '#e4e9f2'], [1, '#a8b4c8']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.4, [[0, '#ffffff'], [0.7, '#e6ebf3'], [1, '#b8c2d4']]); },
+    pathBack: function (ctx) {
+      curvy(ctx, [-0.98, 0.55, -1.3, 0.25, -1.18, -0.1, -1.42, -0.45, -1.12, -0.7, -1.2, -1.1, -0.7, -1.12, -0.5, -1.5, -0.1, -1.25,
+        0.3, -1.55, 0.5, -1.15, 1.0, -1.25, 1.06, -0.8, 1.42, -0.5, 1.16, -0.18, 1.32, 0.25, 1.0, 0.55, 0, 0.3], 0.08);
+    },
+    pathFront: bangs([1.08, -0.1, 1.0, 0.25, 0.82, -0.5, 0.55, -0.6, 0.25, -0.66, -0.05, -0.62, -0.22, 0.12, -0.34, -0.6,
+      -0.72, -0.56, -1.0, 0.25, -1.08, -0.1], 0.05),
+    underBangs: function (ctx) {
+      // red flower make-up around his left eye
+      ctx.save(); ctx.translate(0.43, 0.2);
+      ctx.beginPath();
+      for (var k = 0; k < 5; k++) {
+        var a = -2.4 + k * 0.42;
+        ctx.moveTo(Math.cos(a) * 0.36, Math.sin(a) * 0.4); ctx.lineTo(Math.cos(a) * 0.5, Math.sin(a) * 0.54);
+      }
+      ctx.lineWidth = LW * 1.8; ctx.strokeStyle = '#d8264a'; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.restore();
+    },
+    overHead: function (ctx) {
+      // jewelled headband
+      ctx.beginPath(); ctx.moveTo(-1.1, -0.56); ctx.quadraticCurveTo(0, -0.86, 1.1, -0.56);
+      ctx.lineTo(1.1, -0.38); ctx.quadraticCurveTo(0, -0.66, -1.1, -0.38); ctx.closePath();
+      fs(ctx, '#d9d4c6', 1);
+      var gems = [[-0.55, '#3a7ae8'], [0, '#e8304a'], [0.55, '#30c070']];
+      for (var i = 0; i < 3; i++) {
+        var gx = gems[i][0], gy = -0.6 + Math.abs(gx) * 0.12, r = i === 1 ? 0.14 : 0.1;
+        ctx.beginPath(); ctx.moveTo(gx, gy - r); ctx.lineTo(gx + r, gy); ctx.lineTo(gx, gy + r); ctx.lineTo(gx - r, gy); ctx.closePath();
+        fs(ctx, gems[i][1], 0.8);
+        if (!LOD) { circ(ctx, gx - r * 0.3, gy - r * 0.3, r * 0.22); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(); }
+      }
+    },
+    irisGrad: irisLG('#4a0a2a', '#b02a6a', '#ff8fc0'),
+    irisLine: '#3a0820', pupilCol: '#2a0414', pupil: 0.24,
+    brow: browThin('#8a94a8'),
+    mouth: 'grin',
+    haori: patPlain('#262640'),
+    sleeve: SKIN,
+    blade: 'plain', bladeCol: '#cfd4de', bladeLen: 2.1, guard: '#e6b422', hilt: '#3a2a10', trailMix: 0.3
+  };
+
+  // ---------------- MITSURI (사랑) ----------------
+  function braid(ctx, s) {
+    for (var k = 0; k < 7; k++) {
+      var f = k / 6, x = s * (1.02 + 0.06 * k), y = 0.25 + k * 0.32;
+      ell(ctx, x, y, 0.22 - f * 0.05, 0.2, s * 0.3);
+      fs(ctx, f < 0.45 ? '#ff92c8' : f < 0.75 ? '#e8b49a' : '#9ad86e', 1);
+    }
+  }
+  C.mitsuri = {
+    id: 'mitsuri', name: '칸로지 미츠리', style: 'love', color: '#ff8fc8', title: '사랑의 호흡 · 연주',
+    gradBack: function () { return lg(0, -1.5, 0, 0.7, [[0, '#ff6fb0'], [0.6, '#ff94c8'], [1, '#ffb0d6']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.6, [[0, '#ff6fb0'], [0.7, '#ff9acc'], [1, '#ffbadc']]); },
+    pathBack: roundBack,
+    pathFront: bangs([1.08, -0.1, 1.04, 0.55, 0.86, -0.2, 0.66, -0.12, 0.5, -0.36, 0.3, -0.16, 0.12, -0.4, -0.06, -0.14,
+      -0.24, -0.4, -0.44, -0.14, -0.64, -0.32, -0.86, -0.2, -1.04, 0.55, -1.08, -0.1], 0.05),
+    hairBack: function (ctx, t) {
+      SWAY = Math.sin((t || 0) * 2.4) * 0.035;
+      braid(ctx, -1); braid(ctx, 1);
+    },
+    hairDetail: function (ctx) {
+      ctx.beginPath(); ctx.moveTo(-0.55, -1.02); ctx.quadraticCurveTo(-0.2, -1.22, 0.3, -1.16);
+      ctx.lineWidth = LW * 2.2; ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.stroke();
+    },
+    underBangs: function (ctx) {
+      // two little beauty marks under the eyes
+      ctx.fillStyle = '#5a2a2a';
+      circ(ctx, -0.6, 0.6, 0.028); ctx.fill(); circ(ctx, 0.6, 0.6, 0.028); ctx.fill();
+    },
+    blush: true,
+    irisGrad: irisLG('#0a3a1a', '#2aa860', '#a8f0c0'),
+    irisLine: '#08301a', pupilCol: '#062010', pupil: 0.26,
+    brow: browThin('#e0609a'),
+    mouth: 'soft',
+    haori: patPlain('#f8f8f2'),
+    sleeve: '#f8f8f2',
+    blade: 'plain', bladeCol: '#ff9ccf', bladeLen: 2.5, guard: '#ff6fb0', hilt: '#3a2a3a', trailMix: 0.2
+  };
+
+  // ---------------- MUICHIRO (안개) ----------------
+  C.muichiro = {
+    id: 'muichiro', name: '토키토 무이치로', style: 'mist', color: '#7fd8cc', title: '안개의 호흡 · 하주',
+    gradBack: function () { return lg(0, -1.5, 0, 0.9, [[0, '#121418'], [0.6, '#1a2228'], [1, '#3a8a84']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.95, [[0, '#121418'], [0.55, '#1c242a'], [1, '#5ac0b4']]); },
+    pathBack: roundBack,
+    pathFront: bangs([1.1, -0.05, 1.04, 0.95, 0.88, 0.2, 0.74, -0.1, 0.58, -0.3, 0.42, -0.08, 0.26, -0.36, 0.1, -0.1,
+      -0.06, -0.4, -0.24, -0.12, -0.4, -0.36, -0.58, -0.06, -0.74, -0.2, -0.88, 0.2, -1.04, 0.95, -1.1, -0.05], 0.05),
+    hairBack: function (ctx, t) {
+      SWAY = Math.sin((t || 0) * 2.4) * 0.035;
+      var g = grad('muiLong', function () { return lg(0, -1.2, 0, 2.45, [[0, '#121418'], [0.55, '#1c242a'], [0.8, '#3a9a92'], [1, '#8ae8dc']]); });
+      curvy(ctx, [-1.12, -0.7, -1.28, 0.4, -1.3, 1.4, -1.26, 2.2, -0.9, 2.4, -0.5, 2.26, -0.1, 2.45, 0.3, 2.28, 0.7, 2.42,
+        1.1, 2.24, 1.3, 1.4, 1.28, 0.4, 1.12, -0.7, 0, -1.3], 0.05);
+      fs(ctx, g, 1);
+    },
+    irisGrad: irisLG('#0e3a3a', '#3aa8a0', '#c8f6f0'),
+    irisLine: '#0a3030', pupilCol: '#0a2a2a', pupil: 0.18, eyeHi: 'rgba(255,255,255,0.5)',
+    brow: browThin('#1a2026'),
+    mouth: 'line',
+    haori: patPlain('#262c42'),
+    sleeve: '#1c1c2a',
+    blade: 'plain', bladeCol: '#dff6f2', guard: '#5ac0b4', hilt: '#2a2a36', trailMix: 0.5
+  };
+
+  // ---------------- GYOMEI (바위) ----------------
+  C.gyomei = {
+    id: 'gyomei', name: '히메지마 교메이', style: 'stone', color: '#b8a888', title: '바위의 호흡 · 암주',
+    gradBack: function () { return lg(0, -1.4, 0, 0.4, [[0, '#26221c'], [1, '#3a3428']]); },
+    gradFront: function () { return lg(0, -1.3, 0, -0.6, [[0, '#26221c'], [1, '#3e372a']]); },
+    pathBack: function (ctx) {
+      curvy(ctx, [-1.06, 0.3, -1.12, -0.4, -0.95, -0.95, -0.5, -1.3, 0, -1.38, 0.5, -1.3, 0.95, -0.95, 1.12, -0.4, 1.06, 0.3, 0, 0.2], 0.08);
+    },
+    pathFront: function (ctx, edgeOnly) {
+      curvy(ctx, [1.04, -0.25, 0.92, -0.62, 0.5, -0.84, 0, -0.88, -0.5, -0.84, -0.92, -0.62, -1.04, -0.25], 0.04, true);
+      if (edgeOnly) return;
+      ctx.bezierCurveTo(-1.15, -1.45, 1.15, -1.45, 1.04, -0.25);
+      ctx.closePath();
+    },
+    overHead: function (ctx, expr) {
+      // forehead scar
+      ctx.beginPath(); ctx.moveTo(0.06, -0.8); ctx.lineTo(-0.04, -0.4);
+      ctx.moveTo(-0.06, -0.68); ctx.lineTo(0.1, -0.64); ctx.moveTo(-0.08, -0.54); ctx.lineTo(0.08, -0.5);
+      ctx.lineWidth = LW * 1.4; ctx.strokeStyle = '#a8604e'; ctx.lineCap = 'round'; ctx.stroke();
+      // ever-flowing tears
+      if (expr !== 'smile' && !LOD) {
+        ctx.beginPath(); ctx.moveTo(-0.45, 0.5); ctx.quadraticCurveTo(-0.5, 0.65, -0.46, 0.85);
+        ctx.moveTo(0.45, 0.5); ctx.quadraticCurveTo(0.5, 0.65, 0.46, 0.85);
+        ctx.lineWidth = LW * 1.6; ctx.strokeStyle = 'rgba(140,200,255,0.8)'; ctx.stroke();
+      }
+      // prayer beads
+      for (var i = 0; i <= 8; i++) {
+        var u = i / 8, x = lerp(-0.8, 0.8, u), y = 1.0 + Math.sin(u * Math.PI) * 0.4;
+        circ(ctx, x, y, 0.085); fs(ctx, '#7a5432', 0.8);
+      }
+    },
+    irisGrad: irisLG('#f6f4fa', '#e8e6f0', '#d4d0e0'),
+    irisLine: '#b8b4c8', pupilCol: 'rgba(0,0,0,0)', pupil: 0.01, eyeHi: 'rgba(255,255,255,0.6)',
+    brow: browThin('#26221c'), browY: -0.02,
+    mouth: 'line',
+    haori: patPlain('#5a4a30'),
+    sleeve: '#5a4a30',
+    blade: 'plain', bladeCol: '#8a8a94', bladeLen: 2.0, guard: '#4a4a52', hilt: '#3a3428', trailMix: 0.3
+  };
+
+  // ---------------- OBANAI (뱀) ----------------
+  C.obanai = {
+    id: 'obanai', name: '이구로 오바나이', style: 'serpent', color: '#9a7cf0', title: '뱀의 호흡 · 사주',
+    gradBack: function () { return lg(0, -1.5, 0, 0.8, [[0, '#101016'], [0.7, '#1a1a26'], [1, '#30304a']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.6, [[0, '#101016'], [0.7, '#1c1c2a'], [1, '#34344e']]); },
+    pathBack: function (ctx) {
+      curvy(ctx, [-1.0, 0.7, -1.26, 0.3, -1.14, -0.2, -1.34, -0.55, -1.0, -0.95, -0.7, -1.4, -0.1, -1.45, 0.5, -1.42, 0.9, -1.1,
+        1.3, -0.6, 1.16, -0.2, 1.26, 0.3, 1.0, 0.7, 0, 0.35], 0.08);
+    },
+    pathFront: bangs([1.08, -0.1, 1.0, 0.5, 0.82, -0.2, 0.6, 0.05, 0.42, -0.45, 0.2, -0.2, 0.02, -0.55, -0.2, -0.15,
+      -0.4, -0.5, -0.62, 0.05, -0.84, -0.3, -1.0, 0.5, -1.08, -0.1], 0.05),
+    noMouth: true,
+    overHead: function (ctx) {
+      // bandage over the mouth
+      ctx.save(); facePath(ctx); ctx.clip();
+      ctx.beginPath(); ctx.moveTo(-1.1, 0.5); ctx.quadraticCurveTo(0, 0.42, 1.1, 0.5); ctx.lineTo(1.1, 1.2); ctx.lineTo(-1.1, 1.2); ctx.closePath();
+      ctx.fillStyle = '#f4f4f0'; ctx.fill();
+      if (!LOD) {
+        ctx.beginPath(); ctx.moveTo(-1, 0.68); ctx.quadraticCurveTo(0, 0.62, 1, 0.68); ctx.moveTo(-0.9, 0.86); ctx.quadraticCurveTo(0, 0.8, 0.9, 0.86);
+        ctx.lineWidth = LW * 0.7; ctx.strokeStyle = '#c8c8c0'; ctx.stroke();
+      }
+      ctx.restore();
+      ctx.beginPath(); ctx.moveTo(-0.98, 0.5); ctx.quadraticCurveTo(0, 0.42, 0.98, 0.5); stroke(ctx, 0.9);
+      // Kaburamaru, the white snake, curled at his neck
+      ctx.beginPath(); ctx.moveTo(0.2, 1.08); ctx.quadraticCurveTo(0.9, 1.25, 1.12, 0.85); ctx.quadraticCurveTo(1.25, 0.6, 1.08, 0.5);
+      ctx.lineCap = 'round'; oline(ctx, 0.16, '#fafaf6');
+      ell(ctx, 1.06, 0.46, 0.14, 0.1, -0.5); fs(ctx, '#fafaf6', 1);
+      circ(ctx, 1.08, 0.42, 0.03); ctx.fillStyle = '#d8264a'; ctx.fill();
+    },
+    irisGrad: irisLG('#5a4a00', '#c8a820', '#ffe878'),
+    irisGradR: irisLG('#0a3a40', '#2a98a8', '#9ae8f0'),
+    irisLine: '#2a2a10', pupilCol: '#141408', pupil: 0.18, eyeSlant: 0.05,
+    brow: browThin('#101016'),
+    haori: function (ctx, x0, y0, x1, y1, hem, sc) { patStripes(ctx, x0, y0, x1, y1, 0.16 * (sc || 1)); },
+    sleeve: '#f2f2ee',
+    blade: 'plain', bladeCol: '#8a6ad8', guard: '#2a2a36', hilt: '#3a2a50', trailMix: 0.3
+  };
+
+  // ---------------- SANEMI (바람) ----------------
+  C.sanemi = {
+    id: 'sanemi', name: '시나즈가와 사네미', style: 'wind', color: '#5ed27a', title: '바람의 호흡 · 풍주',
+    gradBack: function () { return rg(0, -0.3, 0.3, 0, -0.3, 1.9, [[0, '#ffffff'], [0.6, '#eceef2'], [1, '#a8b0c0']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.4, [[0, '#ffffff'], [1, '#c4cad6']]); },
+    pathBack: function (ctx) {
+      curvy(ctx, [-1.0, 0.5, -1.45, 0.35, -1.15, 0.0, -1.6, -0.4, -1.18, -0.62, -1.5, -1.1, -0.85, -1.05, -0.9, -1.7, -0.38, -1.25,
+        -0.05, -1.85, 0.25, -1.28, 0.75, -1.72, 0.8, -1.08, 1.45, -1.15, 1.18, -0.62, 1.62, -0.38, 1.16, 0.0, 1.45, 0.36, 1.0, 0.5, 0, 0.3], 0.04);
+    },
+    pathFront: bangs([1.08, -0.1, 1.04, 0.3, 0.84, -0.3, 0.66, 0.0, 0.5, -0.5, 0.3, -0.12, 0.14, -0.6, -0.04, -0.14,
+      -0.22, -0.62, -0.42, -0.1, -0.6, -0.5, -0.8, -0.05, -0.9, -0.3, -1.04, 0.3, -1.08, -0.1], 0.02),
+    underBangs: function (ctx) {
+      // battle scars
+      ctx.beginPath();
+      ctx.moveTo(-0.42, 0.3); ctx.lineTo(0.28, 0.52);
+      ctx.moveTo(0.58, 0.5); ctx.lineTo(0.78, 0.76);
+      ctx.moveTo(-0.72, -0.2); ctx.lineTo(-0.82, 0.05);
+      ctx.lineWidth = LW * 1.6; ctx.strokeStyle = '#c46a6a'; ctx.lineCap = 'round'; ctx.stroke();
+    },
+    irisGrad: irisLG('#3a0a3a', '#9a3a8a', '#f0a0e0'),
+    irisLine: '#2a0a2a', pupilCol: '#1a041a', pupil: 0.14, eyeSlant: 0.1,
+    brow: browThin('#9aa2b2'),
+    mouth: 'grin',
+    haori: patPlain('#f4f4ee'),
+    sleeve: '#f4f4ee',
+    blade: 'plain', bladeCol: '#4ec870', guard: '#2a2a36', hilt: '#2a3a2a', trailMix: 0.35
+  };
+
+  var LIST = [C.tanjiro, C.zenitsu, C.rengoku, C.inosuke, C.nezuko, C.shinobu,
+    C.giyu, C.tengen, C.mitsuri, C.muichiro, C.gyomei, C.obanai, C.sanemi].map(function (c) {
     return { id: c.id, name: c.name, style: c.style, color: c.color, title: c.title };
   });
 
@@ -885,12 +1177,12 @@
       ctx.quadraticCurveTo(tip - 0.12, bw * 0.3, tip - 0.32, bw * 0.75);
       ctx.quadraticCurveTo(b0 + len * 0.45, bw * 0.95, b0, bw * 0.9);
       ctx.closePath();
-      var fill = c.blade === 'black' ? '#23232e' : c.blade === 'thunder' ? '#f6ea9c' :
+      var fill = c.bladeCol ? c.bladeCol : c.blade === 'black' ? '#23232e' : c.blade === 'thunder' ? '#f6ea9c' :
         grad('flameBlade', function () { return lg(0, 0, 2.4, 0, [[0, '#e8321e'], [0.6, '#ff6a24'], [1, '#ffae3a']]); });
       fs(ctx, fill, 1);
       // edge highlight
       ctx.beginPath(); ctx.moveTo(b0 + 0.05, bw * 0.5); ctx.quadraticCurveTo(b0 + len * 0.45, bw * 0.55, tip - 0.34, bw * 0.4);
-      ctx.lineWidth = LW * (c.blade === 'black' ? 1.5 : 0.9); ctx.strokeStyle = c.blade === 'black' ? '#dfe7f2' : c.blade === 'thunder' ? '#ffffff' : '#ffe0a0'; ctx.stroke();
+      ctx.lineWidth = LW * (c.blade === 'black' ? 1.5 : 0.9); ctx.strokeStyle = c.blade === 'black' ? '#dfe7f2' : (c.blade === 'thunder' || c.bladeCol) ? '#ffffff' : '#ffe0a0'; ctx.stroke();
       if (c.blade === 'thunder') {
         ctx.beginPath(); ctx.moveTo(b0 + 0.1, -0.02);
         var segs = 6;
