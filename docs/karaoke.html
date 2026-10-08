@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>귀살대 노래방</title>
+<meta name="theme-color" content="#0b0e22">
+<meta name="description" content="대원들이 노래로 기력을 충전해요. 귀칼 가사의 일본어 동요를 따라 부르고 점수를 받아요. 혼자서도, 대결로도!">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Gowun+Dodum&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0b0e22; --ink:#07081a; --paper:#efe6d2; --paper-dim:#b9b2a3;
+  --blood:#d8343f; --wisteria:#a58bdc; --dawn:#f2b24a; --water:#4fb3ff; --leaf:#5ed27a; --pink:#ff8fc8;
+  --cut:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  --cut-s:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  --brush:"Nanum Brush Script","Gowun Dodum",cursive;
+  --body:"Gowun Dodum",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --jp:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(ellipse at 50% -10%,#3a2050 0%,var(--night) 55%) fixed,var(--night);color:var(--paper);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+button{font:inherit;color:inherit}
+h1,h2,h3,p{margin:0;font-weight:400}
+.screen{display:none;min-height:100vh;padding:calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+.screen.active{display:block;animation:scrIn .3s ease both}
+@keyframes scrIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.wrap{width:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.brush{font-family:var(--brush)}
+.eyebrow{color:var(--wisteria);font-size:14px;letter-spacing:.12em}
+.hint{color:var(--paper-dim);font-size:14px}
+.title{font-size:clamp(50px,14vw,78px);line-height:.95;text-shadow:0 0 26px rgba(255,143,200,.45)}
+.title b{color:var(--pink);font-weight:400}
+.btn{appearance:none;border:0;cursor:pointer;font-size:17px;line-height:1.25;color:var(--paper);background:rgba(239,230,210,.1);padding:12px 16px;min-height:52px;clip-path:var(--cut);
+  box-shadow:inset 0 0 0 1px rgba(239,230,210,.22);display:inline-flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation;text-decoration:none;text-align:center}
+.btn:hover{background:rgba(239,230,210,.18)}
+.btn.red{background:var(--blood);box-shadow:none;font-weight:700}
+.btn.red:hover{background:#e6434e}
+.btn.small{min-height:40px;padding:7px 12px;font-size:15px;clip-path:var(--cut-s)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn-row .btn{flex:1 1 130px}
+a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:#07081a;background:#f2b24a;padding:10px 16px 10px 12px;text-decoration:none;align-self:flex-start;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.panel{background:rgba(7,8,26,.72);clip-path:var(--cut);padding:14px 16px;box-shadow:inset 0 0 0 1px rgba(165,139,220,.25);display:flex;flex-direction:column;gap:10px}
+.me{display:flex;gap:12px;align-items:center}
+.me img{width:60px;height:60px;border-radius:50%}
+.me b{font-size:19px}
+.energy{flex:1}
+.ebar{height:12px;background:rgba(239,230,210,.12);border-radius:6px;overflow:hidden;margin-top:4px}
+.ebar i{display:block;height:100%;background:linear-gradient(90deg,#ff8fc8,#f2b24a);transition:width .6s}
+.songs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.song{background:rgba(7,8,26,.75);clip-path:var(--cut);box-shadow:inset 0 0 0 1px rgba(239,230,210,.16);padding:12px;display:flex;flex-direction:column;gap:10px}
+.song .top{display:flex;gap:12px;align-items:center}
+.song img{width:64px;height:64px;border-radius:50%;flex:0 0 auto}
+.song h3{font-family:var(--jp);font-weight:700;font-size:20px;line-height:1.25}
+.song .ko{font-size:15px}
+.song .tune{font-size:12px;color:var(--paper-dim)}
+.song .best{margin-left:auto;text-align:right;font-size:13px;color:var(--dawn);flex:0 0 auto}
+.song .best b{display:block;font-size:22px}
+.song .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.song .two .btn{min-height:54px;font-size:17px}
+.lyr{display:flex;flex-direction:column;gap:6px;font-size:14px;padding:4px 2px}
+.lyr div{border-left:3px solid rgba(255,143,200,.5);padding-left:8px}
+.lyr .k{font-family:var(--jp);font-weight:700;font-size:16px}
+.lyr .p{color:var(--dawn)}
+.invites{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.invite{display:flex;gap:10px;align-items:center;background:rgba(216,52,63,.15);padding:8px 10px;clip-path:var(--cut-s)}
+.invite img{width:44px;height:44px;border-radius:50%}
+.invite .grow{flex:1;font-size:14px}
+
+/* sing */
+.singtop{display:flex;align-items:center;gap:10px}
+.singtop .grow{flex:1;min-width:0}
+.singtop h2{font-family:var(--jp);font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score{font-size:26px;font-weight:700;color:var(--dawn);min-width:70px;text-align:right}
+.score small{font-size:13px;color:var(--paper-dim);font-weight:400}
+.opp{display:flex;align-items:center;gap:8px;font-size:14px;background:rgba(216,52,63,.15);padding:6px 10px;clip-path:var(--cut-s)}
+.opp img{width:30px;height:30px;border-radius:50%}
+.opp .ob{flex:1;height:8px;background:rgba(239,230,210,.12);border-radius:4px;overflow:hidden}
+.opp .ob i{display:block;height:100%;width:0;background:var(--blood);transition:width .8s}
+#lane{width:100%;height:150px;display:block;background:rgba(7,8,26,.7);clip-path:var(--cut)}
+.lyrics{text-align:center;display:flex;flex-direction:column;gap:6px;min-height:170px;justify-content:center}
+.cur{font-family:var(--jp);font-weight:700;font-size:clamp(28px,8.6vw,42px);line-height:1.3;word-break:keep-all}
+.cur span{color:rgba(239,230,210,.45);transition:color .1s}
+.cur span.sung{color:var(--pink)}
+.cur span.now{color:#fff;text-shadow:0 0 14px var(--pink)}
+.curp{font-size:clamp(19px,5.4vw,24px);color:var(--dawn);font-weight:700}
+.curk{font-size:17px}
+.nextl{font-size:14px;color:var(--paper-dim);font-family:var(--jp)}
+.mode{font-size:13px;color:var(--paper-dim);text-align:center}
+.mode b{color:var(--leaf)}
+.tap{width:100%;min-height:90px;font-size:26px;border-radius:14px;clip-path:none;background:var(--pink);color:#2a0a1a;font-weight:700}
+.fb{position:fixed;left:50%;top:22%;transform:translateX(-50%);font-size:30px;font-weight:700;pointer-events:none;text-shadow:0 2px 0 #000;animation:fb .6s ease-out both;z-index:9}
+@keyframes fb{from{opacity:1;transform:translate(-50%,0) scale(1.2)}to{opacity:0;transform:translate(-50%,-40px) scale(1)}}
+.count{position:fixed;inset:0;display:grid;place-items:center;background:rgba(7,8,26,.65);font-family:var(--brush);font-size:110px;color:var(--pink);z-index:20;text-align:center;line-height:1}
+.count small{display:block;font-size:22px;font-family:var(--body);color:var(--paper);margin-top:10px}
+
+/* result */
+.result{text-align:center;align-items:center}
+.result .big{font-size:76px;line-height:1;color:var(--dawn);font-weight:700}
+.result img{width:130px;height:130px;border-radius:50%}
+.vsres{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;width:100%}
+.vsres .side{display:flex;flex-direction:column;align-items:center;gap:4px}
+.vsres .side img{width:100px;height:100px}
+.vsres .side b{font-size:34px;color:var(--dawn)}
+.vsres .side.win img{box-shadow:0 0 0 4px var(--dawn),0 0 24px rgba(242,178,74,.6)}
+.vsres .vs{font-family:var(--brush);font-size:40px;color:var(--blood)}
+.counts{display:flex;gap:12px;justify-content:center;font-size:14px;flex-wrap:wrap}
+.counts span b{font-size:18px}
+
+/* sheet */
+.sheet{position:fixed;inset:0;background:rgba(7,8,26,.75);display:flex;align-items:flex-end;justify-content:center;z-index:30}
+.sheet .panel{width:100%;max-width:560px;margin:0 8px calc(8px + env(safe-area-inset-bottom))}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
+.pick button{appearance:none;border:0;cursor:pointer;background:rgba(239,230,210,.08);padding:8px 4px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px}
+.pick img{width:52px;height:52px;border-radius:50%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<section class="screen" id="scr-home" aria-labelledby="home-title">
+  <div class="wrap">
+    <a class="arcade-back" href="index.html"><span aria-hidden="true">←</span>아케이드 홈</a>
+    <div>
+      <p class="eyebrow">노래로 기력 충전!</p>
+      <h1 class="title brush" id="home-title">귀살대 <b>노래방</b></h1>
+    </div>
+    <div class="panel">
+      <div class="me" id="me"></div>
+      <p class="hint">일본어 가사를 보고 따라 불러요. 가사 아래 <b style="color:var(--dawn)">주황 글씨</b>가 한글 발음, 그 아래가 뜻이에요. 마이크가 음정을 듣고 점수를 매겨요. 🎧 이어폰을 끼면 더 정확해요!</p>
+    </div>
+    <div class="panel" id="inv-panel" hidden>
+      <h3>⚔️ 노래 대결 신청이 왔어요!</h3>
+      <ul class="invites" id="invites"></ul>
+    </div>
+    <ul class="songs" id="songs"></ul>
+    <p class="hint">노래는 모두 저작권이 끝난 세계 민요 멜로디에, 이 게임을 위해 새로 지은 귀칼 가사를 붙였어요.</p>
+  </div>
+</section>
+
+<section class="screen" id="scr-sing" aria-label="노래 부르기">
+  <div class="wrap">
+    <div class="singtop">
+      <button class="btn small" id="stop" type="button" aria-label="그만 부르기">✕</button>
+      <div class="grow"><h2 id="s-title"></h2><div class="hint" id="s-who"></div></div>
+      <div class="score" id="s-score">0<small>점</small></div>
+    </div>
+    <div class="opp" id="s-opp" hidden><img alt=""><span class="on"></span><div class="ob"><i></i></div><b class="os">0</b></div>
+    <canvas id="lane" aria-hidden="true"></canvas>
+    <div class="lyrics" aria-live="off">
+      <div class="cur" id="l-cur"></div>
+      <div class="curp" id="l-pron"></div>
+      <div class="curk" id="l-ko"></div>
+      <div class="nextl" id="l-next"></div>
+    </div>
+    <div class="mode" id="s-mode"></div>
+    <button class="btn tap" id="tap" type="button" hidden>톡! 🎵</button>
+    <div class="btn-row"><button class="btn small" id="guide" type="button">🎹 가이드 멜로디 켜짐</button></div>
+  </div>
+</section>
+
+<section class="screen" id="scr-result" aria-label="결과">
+  <div class="wrap result" id="result"></div>
+</section>
+
+<section class="screen" id="scr-wait" aria-label="상대 기다리기">
+  <div class="wrap" style="align-items:center;text-align:center;padding-top:10vh">
+    <img id="wait-face" width="130" height="130" alt="" style="border-radius:50%">
+    <h2 class="brush" style="font-size:42px">상대를 기다리는 중 ⏳</h2>
+    <p class="hint" id="wait-song"></p>
+    <p class="hint">같은 동기화 코드를 쓰는 대원이 노래방에 들어오면 신청이 보여요.</p>
+    <button class="btn" id="wait-cancel" type="button">대결 취소</button>
+  </div>
+</section>
+
+<section class="screen" id="scr-hand" aria-label="차례 넘기기">
+  <div class="wrap" style="align-items:center;text-align:center;padding-top:8vh" id="hand"></div>
+</section>
+
+<div class="sheet" id="sheet" hidden><div class="panel" id="sheet-body"></div></div>
+<div class="count" id="count" hidden></div>
+
+<script src="kchars.js"></script>
+<script src="kprofile.js"></script>
+<script src="ksync.js"></script>
+<script src="nihongo-data.js"></script>
+<script src="karaoke-songs.js"></script>
+<script>
+(() => {
+'use strict';
+const SONGS = window.KSONGS, D = window.NIHONGO, KP = window.KProfile, KS = window.KSync;
+const KC = (window.KChars && typeof KChars.bustDataURL === 'function') ? window.KChars : null;
+const $ = id => document.getElementById(id);
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const ROOT = 'kimetsu-arcade:';
+const NAME = { tanjiro: '탄지로', zenitsu: '젠이츠', rengoku: '렌고쿠', inosuke: '이노스케', nezuko: '네즈코', shinobu: '시노부',
+  giyu: '기유', tengen: '텐겐', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', obanai: '오바나이', sanemi: '사네미' };
+const faceCache = {};
+function face(id, px, expr) {
+  const k = id + px + (expr || ''); if (faceCache[k] != null) return faceCache[k];
+  let u = ''; try { if (KC && KC.byId(id)) u = KC.bustDataURL(id, px, { expr: expr || 'smile' }) || ''; } catch (e) { u = ''; }
+  return (faceCache[k] = u);
+}
+function faceImg(id, px, expr) { const im = el('img'); const u = face(id || 'tanjiro', px * 2, expr); if (u) im.src = u; im.alt = ''; im.width = px; im.height = px; return im; }
+function readJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
+function writeJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage off */ } }
+function prefixOf(p) { return !p || p.legacy ? ROOT : ROOT + 'u:' + p.id + ':'; }
+function curProfile() { try { return KP ? KP.current() : null; } catch (e) { return null; } }
+function player() {
+  if (window.__KARAOKE_ME) return window.__KARAOKE_ME;   // test hook
+  const p = curProfile();
+  return p ? { pid: p.id.replace(/[^a-z0-9]/gi, ''), id: p.id, name: p.name, avatar: p.avatar, legacy: !!p.legacy } : { pid: 'guest', name: '대원', avatar: 'tanjiro', guest: true };
+}
+const go = n => { ['home', 'sing', 'result', 'wait', 'hand'].forEach(x => $('scr-' + x).classList.toggle('active', x === n)); window.scrollTo(0, 0); };
+function grade(s) { return s >= 90 ? '柱급 노래 실력! 🏆' : s >= 75 ? '아주 잘했어요! 🎉' : s >= 50 ? '좋아요! 👍' : '다시 불러 볼까요? 🎤'; }
+
+/* ---------- records ---------- */
+function recFor(p, key, d) { return readJSON(prefixOf(p) + 'karaoke:' + key, d); }
+function setRec(p, key, v) { writeJSON(prefixOf(p) + 'karaoke:' + key, v); }
+function saveSolo(p, song, score) {
+  if (!p || p.guest) return { best: false, energy: 0 };
+  const best = recFor(p, 'best', {}), was = best[song.id] || 0;
+  if (score > was) { best[song.id] = score; setRec(p, 'best', best); }
+  const gain = Math.max(5, Math.round(score / 4));
+  const en = Math.min(100, energyToday(p) + gain); setRec(p, 'energy', { d: today(), v: en });
+  if (KS && KS.syncNow) KS.syncNow({ silent: true });
+  return { best: score > was, energy: gain, total: en };
+}
+function today() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function energyToday(p) { const e = recFor(p, 'energy', null); return e && e.d === today() ? e.v || 0 : 0; }
+function saveBattle(p, res) {
+  if (!p || p.guest) return;
+  const r = recFor(p, 'battle', { w: 0, l: 0, d: 0 }); r[res]++; setRec(p, 'battle', r);
+}
+
+/* ---------- audio ---------- */
+let AC = null, master = null;
+function ac() {
+  if (!AC) { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination); }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+function note(t, m, d, type, vol, out) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = hz(m);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02);
+  g.gain.setValueAtTime(vol, t + Math.max(0.03, d - 0.08)); g.gain.linearRampToValueAtTime(0, t + d);
+  o.connect(g); g.connect(out || master); o.start(t); o.stop(t + d + 0.05);
+  return o;
+}
+function hit(t, f0, f1, d, vol, noise) {
+  if (noise) {
+    const n = AC.createBufferSource(), len = Math.floor(AC.sampleRate * d), b = AC.createBuffer(1, len, AC.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const g = AC.createGain(), f = AC.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2000;
+    g.gain.value = vol; n.buffer = b; n.connect(f); f.connect(g); g.connect(master); n.start(t); return;
+  }
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + d + 0.02);
+}
+// simple auto-harmony: per bar pick C, F, G or Am covering the most melody
+const CHORDS = { C: [0, 4, 7], F: [5, 9, 0], G: [7, 11, 2], Am: [9, 0, 4] };
+function chordsFor(song) {
+  const bars = Math.ceil(song.beats / 4), out = [];
+  for (let b = 0; b < bars; b++) {
+    const w = { C: 0.3, F: 0, G: 0, Am: 0 };
+    song.notes.forEach(n => {
+      const ov = Math.max(0, Math.min(n.beat + n.dur, b * 4 + 4) - Math.max(n.beat, b * 4)); if (!ov) return;
+      for (const c in CHORDS) if (CHORDS[c].includes(n.midi % 12)) w[c] += ov * (n.beat === b * 4 ? 1.5 : 1);
+    });
+    if (b === bars - 1) w.C += 2;
+    out.push(Object.keys(w).sort((x, y) => w[y] - w[x])[0]);
+  }
+  return out;
+}
+let guideOn = true, guideGain = null;
+function playSong(song, startAt) {
+  const spb = 60 / song.bpm, t0 = startAt;
+  guideGain = AC.createGain(); guideGain.gain.value = guideOn ? 1 : 0; guideGain.connect(master);
+  // count-in: 4 clicks
+  for (let i = 4; i >= 1; i--) hit(t0 - i * spb, 1500, 900, 0.05, 0.25);
+  const chords = chordsFor(song), nodes = [];
+  chords.forEach((c, b) => {
+    const t = t0 + b * 4 * spb, root = 48 + CHORDS[c][0], len = Math.min(4, song.beats - b * 4) * spb;
+    nodes.push(note(t, root - 12, len * 0.5, 'triangle', 0.16));
+    nodes.push(note(t + len * 0.5, root - 12 + 7, len * 0.5, 'triangle', 0.12));
+    CHORDS[c].forEach(pc => nodes.push(note(t, 60 + pc - (pc > 7 ? 12 : 0), len * 0.95, 'sine', 0.035)));
+    for (let k = 0; k < 4 && b * 4 + k < song.beats; k++) {
+      const tk = t + k * spb;
+      if (k % 2 === 0) hit(tk, 120, 45, 0.18, 0.35); else hit(tk, 0, 0, 0.12, 0.08, true);
+    }
+  });
+  song.notes.forEach(n => nodes.push(note(t0 + n.beat * spb, n.midi + 12, n.dur * spb * 0.92, 'triangle', 0.09, guideGain)));
+  return { t0, stop() { nodes.forEach(o => { try { o.stop(); } catch (e) { /* done */ } }); try { guideGain.gain.value = 0; } catch (e) { /* */ } } };
+}
+$('guide').addEventListener('click', () => {
+  guideOn = !guideOn; if (guideGain) guideGain.gain.value = guideOn ? 1 : 0;
+  $('guide').textContent = guideOn ? '🎹 가이드 멜로디 켜짐' : '🎹 가이드 멜로디 꺼짐';
+});
+
+/* ---------- microphone pitch ---------- */
+let MIC = null;
+async function startMic() {
+  if (MIC) return MIC;
+  if (window.__KARAOKE_NOMIC) throw new Error('nomic');
+  if (window.__KARAOKE_FAKE) { MIC = { fake: true, stream: { getTracks: () => [] } }; return MIC; }   // test hook
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+  const src = AC.createMediaStreamSource(stream), an = AC.createAnalyser(); an.fftSize = 2048; src.connect(an);
+  MIC = { stream, an, buf: new Float32Array(2048) };
+  return MIC;
+}
+function stopMic() { if (MIC) { try { MIC.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* */ } MIC = null; } }
+// YIN-style detector on a 2x-decimated frame. Returns { rms, midi|null }
+function detect() {
+  if (window.__KARAOKE_FAKE) return window.__KARAOKE_FAKE();
+  const an = MIC.an, b = MIC.buf; an.getFloatTimeDomainData(b);
+  const sr = AC.sampleRate / 2, n = b.length >> 1, x = new Float32Array(n);
+  let rms = 0;
+  for (let i = 0; i < n; i++) { const v = (b[2 * i] + b[2 * i + 1]) * 0.5; x[i] = v; rms += v * v; }
+  rms = Math.sqrt(rms / n);
+  if (rms < 0.012) return { rms, midi: null };
+  const minLag = Math.floor(sr / 1100), maxLag = Math.min(Math.floor(sr / 90), n >> 1), W = n - maxLag;
+  const d = new Float32Array(maxLag + 1); let run = 0, best = -1;
+  for (let tau = 1; tau <= maxLag; tau++) {
+    let s = 0; for (let i = 0; i < W; i++) { const df = x[i] - x[i + tau]; s += df * df; }
+    run += s; d[tau] = run ? s * tau / run : 1;
+    if (tau > minLag && d[tau] < 0.18 && best < 0) best = tau;
+    if (best > 0 && tau > best && d[tau] > d[tau - 1]) { best = tau - 1; break; }
+  }
+  if (best < 0) return { rms, midi: null };
+  const a = d[best - 1] || d[best], c = d[best + 1] || d[best], den = a - 2 * d[best] + c;
+  const lag = best + (den ? (a - c) / (2 * den) : 0), f = sr / lag;
+  return { rms, midi: 69 + 12 * Math.log2(f / 440) };
+}
+const fold = (p, target) => p + 12 * Math.round((target - p) / 12);
+
+/* ---------- singing session ---------- */
+let SESSION = null;
+const W_GRADE = { perfect: 1, good: 0.75, ok: 0.4, miss: 0 };
+function laneCanvas() {
+  const cv = $('lane'), dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, w, h };
+}
+function sing(song, opts) {
+  opts = opts || {};
+  return new Promise(async resolve => {
+    ac();
+    const who = opts.player || player();
+    $('s-title').textContent = song.title + '  ·  ' + song.ko;
+    $('s-who').textContent = who.name + ' 차례 · ' + song.tune;
+    $('s-score').innerHTML = '0<small>점</small>';
+    $('s-opp').hidden = !opts.opp;
+    if (opts.opp) { const o = $('s-opp'); o.querySelector('img').src = face(opts.opp.avatar, 60); o.querySelector('.on').textContent = opts.opp.name; }
+    go('sing');
+    let mic = null;
+    try { mic = await startMic(); } catch (e) { mic = null; }
+    const tapMode = !mic;
+    $('tap').hidden = !tapMode;
+    $('s-mode').innerHTML = tapMode ? '마이크를 쓸 수 없어서 <b>박자 모드</b>예요. 하얀 글자가 바뀔 때마다 「톡!」을 눌러요.' : '🎤 <b>마이크가 듣고 있어요</b> · 하얗게 빛나는 글자를 불러요';
+    const notes = song.notes.map(n => Object.assign({}, n, { frames: 0, voiced: 0, hits: 0, grade: null, tapped: false }));
+    const spb = 60 / song.bpm, trail = [];
+    // count-down overlay, then music
+    const cnt = $('count'); cnt.hidden = false;
+    for (const t of ['3', '2', '1']) { cnt.innerHTML = t + '<small>' + (t === '1' ? '노래 시작!' : '준비하세요') + '</small>'; await wait(650); }
+    cnt.hidden = true;
+    const startAt = AC.currentTime + 4 * spb + 0.15, track = playSong(song, startAt);
+    let done = false, lastLine = -1, scoreNow = 0, nextFrame = 0;
+    const stopBtn = $('stop');
+    const finish = aborted => {
+      if (done) return; done = true; track.stop(); stopMic();
+      stopBtn.onclick = null; $('tap').onclick = null;
+      notes.forEach(n => { if (!n.grade) judge(n); });
+      const counts = { perfect: 0, good: 0, ok: 0, miss: 0 };
+      notes.forEach(n => counts[n.grade]++);
+      resolve(aborted ? null : { score: calcScore(true), counts, tapMode });
+    };
+    stopBtn.onclick = () => finish(true);
+    function judge(n) {
+      if (tapMode) { n.grade = n.tapped || 'miss'; return; }
+      const fr = Math.max(1, n.frames), h = n.hits / fr, v = n.voiced / fr;
+      n.grade = h >= 0.35 ? 'perfect' : h >= 0.15 ? 'good' : v >= 0.3 ? 'ok' : 'miss';
+      popFb(n.grade);
+    }
+    function calcScore(all) {
+      let w = 0, s = 0;
+      notes.forEach(n => { if (n.grade || all) { const wt = n.dur; w += wt; s += wt * W_GRADE[n.grade || 'miss']; } });
+      return w ? Math.round(s / w * 100) : 0;
+    }
+    function popFb(gr) {
+      if (gr === 'miss') return;
+      const f = el('div', 'fb', gr === 'perfect' ? '최고!' : gr === 'good' ? '좋아!' : '♪');
+      f.style.color = gr === 'perfect' ? '#ffe14d' : gr === 'good' ? '#5ed27a' : '#a58bdc';
+      document.body.appendChild(f); setTimeout(() => f.remove(), 600);
+    }
+    if (tapMode) $('tap').onclick = () => {
+      const beat = (AC.currentTime - startAt) / spb;
+      let bestN = null, bd = 9;
+      notes.forEach(n => { if (!n.tapped) { const dd = Math.abs(beat - n.beat); if (dd < bd) { bd = dd; bestN = n; } } });
+      if (bestN && bd <= 0.4) { bestN.tapped = bd <= 0.18 ? 'perfect' : 'good'; popFb(bestN.tapped); }
+    };
+    const minM = Math.min.apply(null, notes.map(n => n.midi)) - 3, maxM = Math.max.apply(null, notes.map(n => n.midi)) + 3;
+    function draw(beat, curNote) {
+      const { g, w, h } = laneCanvas(), ppb = w / 7, px = w * 0.22, ym = m => h - 10 - (m - minM) / (maxM - minM) * (h - 20);
+      g.clearRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(239,230,210,.07)'; g.lineWidth = 1;
+      for (let m = minM; m <= maxM; m++) { g.beginPath(); g.moveTo(0, ym(m)); g.lineTo(w, ym(m)); g.stroke(); }
+      notes.forEach(n => {
+        const x = px + (n.beat - beat) * ppb, wd = Math.max(6, n.dur * ppb - 4); if (x > w || x + wd < 0) return;
+        g.fillStyle = n.grade === 'perfect' ? '#ffe14d' : n.grade === 'good' ? '#5ed27a' : n.grade === 'ok' ? '#a58bdc' : n.grade === 'miss' ? 'rgba(216,52,63,.5)' : n === curNote ? '#ffffff' : 'rgba(255,143,200,.75)';
+        const y = ym(n.midi) - 6; g.beginPath(); if (g.roundRect) g.roundRect(x, y, wd, 12, 6); else g.rect(x, y, wd, 12); g.fill();
+        if (ppb * n.dur > 18) { g.fillStyle = 'rgba(7,8,26,.85)'; g.font = '700 10px sans-serif'; g.textBaseline = 'middle'; g.fillText(n.syl, x + 4, y + 6.5); }
+      });
+      g.fillStyle = '#ffe14d';
+      trail.forEach(p => { const x = px + (p.b - beat) * ppb; if (x < 0) return; g.globalAlpha = Math.max(0.15, 1 - (beat - p.b) / 3); g.beginPath(); g.arc(x, ym(p.m), 3.5, 0, 6.3); g.fill(); });
+      g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(px, 0); g.lineTo(px, h); g.stroke();
+    }
+    function showLine(li, beat) {
+      const L = song.lines[li], cur = $('l-cur');
+      if (li !== lastLine) {
+        lastLine = li; cur.textContent = '';
+        L.syl.forEach(s => cur.appendChild(el('span', null, s)));
+        $('l-pron').textContent = D.pron(L.pk || L.kana);
+        $('l-ko').textContent = L.ko;
+        const nx = song.lines[li + 1]; $('l-next').textContent = nx ? '다음: ' + nx.kana : '';
+      }
+      const spans = cur.children;
+      for (let k = 0; k < L.syl.length; k++) {
+        const n = notes[L.first + k];
+        spans[k].className = beat >= n.beat + n.dur ? 'sung' : beat >= n.beat ? 'now' : '';
+      }
+    }
+    let lastPush = 0;
+    let lastTick = 0;
+    function frame() {
+      lastTick = performance.now();
+      if (done) return;
+      const beat = (AC.currentTime - startAt) / spb;
+      let cur = null;
+      for (const n of notes) { if (beat >= n.beat && beat < n.beat + n.dur) { cur = n; break; } }
+      window.__karaokeCur = cur ? cur.midi : null;   // read by the automated test
+      // lyrics: show upcoming line during count-in / gaps
+      let li = 0; for (let k = 0; k < song.lines.length; k++) if (beat >= song.lines[k].start - 0.5) li = k;
+      showLine(li, beat);
+      if (!tapMode && beat > -0.5 && performance.now() >= nextFrame) {
+        nextFrame = performance.now() + 30;
+        const r = detect();
+        if (r.midi != null && cur) trail.push({ b: beat, m: Math.max(minM, Math.min(maxM, fold(r.midi, cur.midi))) });
+        else if (r.midi != null) trail.push({ b: beat, m: Math.max(minM, Math.min(maxM, r.midi)) });
+        while (trail.length && beat - trail[0].b > 3) trail.shift();
+        if (cur) { cur.frames++; if (r.midi != null) { cur.voiced++; if (Math.abs(fold(r.midi, cur.midi) - cur.midi) <= 1.5) cur.hits++; } }
+      }
+      notes.forEach(n => { if (!n.grade && beat >= n.beat + n.dur && !tapMode) judge(n); if (tapMode && !n.grade && beat > n.beat + 0.45) n.grade = n.tapped || 'miss'; });
+      const sc = calcScore(false);
+      if (sc !== scoreNow) { scoreNow = sc; $('s-score').innerHTML = sc + '<small>점</small>'; }
+      if (opts.onProgress && performance.now() - lastPush > 1500) { lastPush = performance.now(); opts.onProgress({ score: sc, prog: Math.max(0, Math.min(1, beat / song.beats)) }); }
+      draw(beat, cur);
+      if (beat >= song.beats + 0.8) { finish(false); return; }
+    }
+    // rAF drives the screen; a timer keeps scoring going if frames are paused or throttled
+    const tick = () => { try { frame(); } catch (e) { /* keep singing */ } };
+    const loop = () => { tick(); if (!done) requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+    const keep = setInterval(() => { if (done) { clearInterval(keep); return; } if (performance.now() - lastTick > 120) tick(); }, 60);
+    SESSION = { finish };
+  });
+}
+
+/* ---------- home ---------- */
+function renderHome() {
+  const p = player(), box = $('me'); box.textContent = '';
+  const en = p.guest ? 0 : energyToday(p);
+  const e = el('div', 'energy'); e.append(el('b', null, p.name), el('div', 'hint', '오늘의 기력 ' + en + ' / 100'));
+  const bar = el('div', 'ebar'), bi = el('i'); bi.style.width = en + '%'; bar.appendChild(bi); e.appendChild(bar);
+  box.append(faceImg(p.avatar, 60), e);
+  const ul = $('songs'); ul.textContent = '';
+  const best = p.guest ? {} : recFor(p, 'best', {});
+  SONGS.forEach(s => {
+    const li = el('li', 'song'), top = el('div', 'top');
+    const mid = el('div'); mid.append(el('h3', null, s.title), el('div', 'ko', s.ko + ' · ' + (NAME[s.char] || '')), el('div', 'tune', s.tune + ' · ' + Math.round(s.seconds) + '초'));
+    const b = el('div', 'best'); if (best[s.id] != null) { b.append(el('b', null, best[s.id] + '점'), '최고 점수'); }
+    top.append(faceImg(s.char, 64), mid, b);
+    const two = el('div', 'two');
+    const solo = el('button', 'btn red', '🎤 혼자 부르기'); solo.type = 'button'; solo.addEventListener('click', () => soloSing(s));
+    const bat = el('button', 'btn red', '⚔️ 배틀'); bat.type = 'button'; bat.addEventListener('click', () => battleSheet(s));
+    two.append(solo, bat);
+    const det = el('details'), sum = el('summary', 'hint', '📖 가사 미리 보기'); det.appendChild(sum);
+    const ly = el('div', 'lyr');
+    s.lines.forEach(L => { const d = el('div'); d.append(el('div', 'k', L.kana), el('div', 'p', D.pron(L.pk || L.kana)), el('div', null, L.ko)); ly.appendChild(d); });
+    det.appendChild(ly);
+    li.append(top, two, det); ul.appendChild(li);
+  });
+  pollInvites();
+}
+
+/* ---------- solo ---------- */
+async function soloSing(song) {
+  const p = player();
+  const r = await sing(song, { player: p });
+  if (!r) { go('home'); renderHome(); return; }
+  const sv = saveSolo(p, song, r.score);
+  const box = $('result'); box.textContent = '';
+  box.append(el('p', 'eyebrow', song.title + ' · ' + song.ko), faceImg(r.score >= 50 ? p.avatar : song.char, 130, 'smile'),
+    el('div', 'big', r.score + '점'), el('h2', 'brush', grade(r.score)));
+  box.lastChild.style.fontSize = '38px';
+  box.appendChild(countsEl(r.counts));
+  if (!p.guest) box.appendChild(el('p', null, '💗 기력 +' + sv.energy + ' (지금 ' + sv.total + ' / 100)' + (sv.best ? ' · 🏅 최고 점수 갱신!' : '')));
+  if (r.tapMode) box.appendChild(el('p', 'hint', '박자 모드 점수예요. 마이크를 허용하면 음정으로 점수를 매겨요.'));
+  const row = el('div', 'btn-row'); row.style.width = '100%';
+  const again = el('button', 'btn red', '🔁 다시 부르기'); again.type = 'button'; again.addEventListener('click', () => soloSing(song));
+  const home = el('button', 'btn', '🎵 노래 목록'); home.type = 'button'; home.addEventListener('click', () => { go('home'); renderHome(); });
+  row.append(again, home); box.appendChild(row);
+  go('result');
+}
+function countsEl(c) {
+  const d = el('div', 'counts');
+  [['최고', c.perfect, '#ffe14d'], ['좋아', c.good, '#5ed27a'], ['♪', c.ok, '#a58bdc'], ['놓침', c.miss, '#d8343f']].forEach(([n, v, col]) => {
+    const s = el('span'); const b = el('b', null, String(v)); b.style.color = col; s.append(n + ' ', b); d.appendChild(s);
+  });
+  return d;
+}
+
+/* ---------- battle chooser ---------- */
+function closeSheet() { $('sheet').hidden = true; }
+$('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeSheet(); });
+function battleSheet(song) {
+  const b = $('sheet-body'); b.textContent = '';
+  b.append(el('h3', null, '⚔️ 「' + song.ko + '」 노래 대결'), el('p', 'hint', '둘 중 점수가 높은 대원이 이겨요!'));
+  const one = el('button', 'btn red', '👥 한 폰에서 둘이 (번갈아 부르기)'); one.type = 'button';
+  one.addEventListener('click', () => pickPartner(song));
+  const on = el('button', 'btn red', '📱 각자 폰으로 (온라인 대결)'); on.type = 'button';
+  const fam = KS && KS.configured() && KS.code();
+  if (!fam) { on.disabled = true; }
+  on.addEventListener('click', () => { closeSheet(); createOnline(song); });
+  const cancel = el('button', 'btn small', '취소'); cancel.type = 'button'; cancel.addEventListener('click', closeSheet);
+  b.append(one, on);
+  if (!fam) b.appendChild(el('p', 'hint', '온라인 대결은 아케이드 홈의 「☁️ 기록 동기화」를 켜면 쓸 수 있어요.'));
+  b.appendChild(cancel);
+  $('sheet').hidden = false;
+}
+function pickPartner(song) {
+  const me = player(), b = $('sheet-body'); b.textContent = '';
+  b.append(el('h3', null, '누구와 대결할까요?'), el('p', 'hint', me.name + ' 다음에 부를 대원을 골라요.'));
+  const grid = el('div', 'pick');
+  const others = (KP ? KP.list() : []).filter(p => p.id !== me.id).map(p => ({ pid: p.id, id: p.id, name: p.name, avatar: p.avatar, legacy: p.legacy }));
+  others.push({ pid: 'guest2', name: '손님', avatar: 'zenitsu', guest: true });
+  others.forEach(p => {
+    const bt = el('button'); bt.type = 'button'; bt.append(faceImg(p.avatar, 52), el('span', null, p.name));
+    bt.addEventListener('click', () => { closeSheet(); localBattle(song, [me, p]); });
+    grid.appendChild(bt);
+  });
+  const cancel = el('button', 'btn small', '취소'); cancel.type = 'button'; cancel.addEventListener('click', closeSheet);
+  b.append(grid, cancel);
+}
+
+/* ---------- pass-and-play battle ---------- */
+function handoff(p, text) {
+  return new Promise(resolve => {
+    const h = $('hand'); h.textContent = '';
+    h.append(faceImg(p.avatar, 130), el('h2', 'brush', p.name + ' 차례!'), el('p', null, text));
+    h.children[1].style.fontSize = '46px';
+    const b = el('button', 'btn red', '🎤 준비됐어요! 시작'); b.type = 'button'; b.addEventListener('click', () => resolve());
+    h.appendChild(b); go('hand');
+  });
+}
+async function localBattle(song, ps) {
+  const scores = [];
+  for (let i = 0; i < 2; i++) {
+    await handoff(ps[i], i === 0 ? '먼저 불러요. 다 부르면 폰을 ' + ps[1].name + '에게 넘겨 주세요.' : ps[0].name + '은(는) ' + scores[0].score + '점! 이길 수 있을까요?');
+    const r = await sing(song, { player: ps[i] });
+    if (!r) { go('home'); renderHome(); return; }
+    scores.push(r); saveSolo(ps[i], song, r.score);
+  }
+  const res = scores[0].score === scores[1].score ? 'd' : scores[0].score > scores[1].score ? 0 : 1;
+  if (res === 'd') { saveBattle(ps[0], 'd'); saveBattle(ps[1], 'd'); }
+  else { saveBattle(ps[res], 'w'); saveBattle(ps[1 - res], 'l'); }
+  if (KS && KS.syncNow) KS.syncNow({ silent: true });
+  showVs(song, ps[0], scores[0].score, ps[1], scores[1].score, () => localBattle(song, ps));
+}
+function showVs(song, a, sa, b, sb, again, note) {
+  const box = $('result'); box.textContent = '';
+  const win = sa === sb ? -1 : sa > sb ? 0 : 1;
+  box.append(el('p', 'eyebrow', '노래 대결 · ' + song.ko), el('h2', 'brush', win < 0 ? '무승부!' : (win === 0 ? a.name : b.name) + ' 승리! 🏆'));
+  box.lastChild.style.fontSize = '46px';
+  const g = el('div', 'vsres');
+  [[a, sa, 0], null, [b, sb, 1]].forEach(x => {
+    if (!x) { g.appendChild(el('div', 'vs', 'VS')); return; }
+    const s = el('div', 'side' + (win === x[2] ? ' win' : '')); s.append(faceImg(x[0].avatar, 100, win === x[2] || win < 0 ? 'smile' : 'hurt'), el('div', null, x[0].name), el('b', null, x[1] + '점'));
+    g.appendChild(s);
+  });
+  box.appendChild(g);
+  if (note) box.appendChild(el('p', 'hint', note));
+  const row = el('div', 'btn-row'); row.style.width = '100%';
+  if (again) { const ag = el('button', 'btn red', '⚔️ 한 판 더'); ag.type = 'button'; ag.addEventListener('click', again); row.appendChild(ag); }
+  const home = el('button', 'btn', '🎵 노래 목록'); home.type = 'button'; home.addEventListener('click', () => { go('home'); renderHome(); });
+  row.appendChild(home); box.appendChild(row);
+  sfxWin();
+  go('result');
+}
+function sfxWin() { try { ac(); [523, 659, 784, 1047].forEach((f, i) => { const t = AC.currentTime + i * 0.1; note(t, 69 + 12 * Math.log2(f / 440), 0.25, 'triangle', 0.12); }); } catch (e) { /* */ } }
+
+/* ---------- online battle (Firestore REST, same rooms/lobby as 말의 호흡 배틀) ---------- */
+async function fsGet(path) {
+  const r = await fetch(KS.base() + path, { cache: 'no-store' });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error('서버 응답 ' + r.status);
+  const j = await r.json(), out = {}, f = (j && j.fields) || {};
+  Object.keys(f).forEach(k => { const s = f[k].stringValue; if (s) { try { out[k] = JSON.parse(s); } catch (e) { /* skip */ } } });
+  return out;
+}
+async function fsSet(path, obj) {
+  const keys = Object.keys(obj), qs = keys.map(k => 'updateMask.fieldPaths=' + encodeURIComponent(k)).join('&'), body = { fields: {} };
+  keys.forEach(k => { body.fields[k] = { stringValue: obj[k] == null ? '' : JSON.stringify(obj[k]) }; });
+  const r = await fetch(KS.base() + path + '?' + qs, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('저장 실패 ' + r.status);
+}
+const family = () => (KS && KS.configured() && KS.code()) || '';
+let ON = null, invTimer = 0;
+function rid() { const a = 'abcdefghijkmnpqrstuvwxyz23456789'; let s = ''; for (let i = 0; i < 6; i++) s += a[Math.floor(Math.random() * a.length)]; return family() + '-' + s; }
+function pollInvites() {
+  clearTimeout(invTimer);
+  const fam = family(); if (!fam || !$('scr-home').classList.contains('active')) { $('inv-panel').hidden = true; return; }
+  const me = player();
+  fsGet('lobby/' + fam).then(lob => {
+    const now = Date.now(), list = Object.keys(lob || {}).map(k => lob[k]).filter(r => r && r.game === 'karaoke' && r.pid !== me.pid && now - r.t < 60000);
+    const ul = $('invites'); ul.textContent = '';
+    list.forEach(r => {
+      const s = SONGS.find(x => x.id === r.song); if (!s) return;
+      const li = el('li', 'invite'), t = el('div', 'grow');
+      t.append(el('b', null, r.name), document.createTextNode('이(가) 「' + s.ko + '」 노래 대결을 기다려요!'));
+      const b = el('button', 'btn small red', '도전! 🎤'); b.type = 'button'; b.addEventListener('click', () => joinOnline(r, s));
+      li.append(faceImg(r.avatar, 44), t, b); ul.appendChild(li);
+    });
+    $('inv-panel').hidden = !ul.children.length;
+  }).catch(() => { $('inv-panel').hidden = true; }).then(() => { invTimer = setTimeout(pollInvites, 3000); });
+}
+async function createOnline(song) {
+  const me = player(), fam = family(); if (!fam) return;
+  clearTimeout(invTimer);
+  const id = rid(), who = { pid: me.pid, name: me.name, avatar: me.avatar };
+  const entry = () => ({ rid: id, pid: me.pid, name: me.name, avatar: me.avatar, t: Date.now(), game: 'karaoke', song: song.id });
+  try {
+    await fsSet('rooms/' + id, { meta: { game: 'karaoke', song: song.id, host: who, created: Date.now() }, hs: { who, score: 0, prog: 0, t: Date.now() } });
+    await fsSet('lobby/' + fam, { ['r_' + me.pid]: entry() });
+  } catch (e) { alert('방을 만들 수 없어요: ' + e.message); go('home'); renderHome(); return; }
+  ON = { id, song, mine: 'hs', theirs: 'gs', me: who, closed: false };
+  $('wait-face').src = face(me.avatar, 260); $('wait-song').textContent = '「' + song.title + ' · ' + song.ko + '」';
+  go('wait');
+  let beat = 0;
+  while (ON && !ON.closed && ON.id === id) {
+    await wait(1000);
+    if (!ON || ON.closed) return;
+    let room = null; try { room = await fsGet('rooms/' + id); } catch (e) { continue; }
+    if (room && room.gs && room.gs.who) {
+      ON.opp = room.gs.who;
+      try { await fsSet('lobby/' + fam, { ['r_' + me.pid]: null }); } catch (e) { /* expires */ }
+      runOnline(); return;
+    }
+    if (++beat % 10 === 0) { try { await fsSet('lobby/' + fam, { ['r_' + me.pid]: entry() }); } catch (e) { /* retry */ } }
+  }
+}
+$('wait-cancel').addEventListener('click', async () => {
+  const me = player(); if (ON) ON.closed = true;
+  try { await fsSet('lobby/' + family(), { ['r_' + me.pid]: null }); } catch (e) { /* expires */ }
+  ON = null; go('home'); renderHome();
+});
+async function joinOnline(entry, song) {
+  const me = player(); clearTimeout(invTimer);
+  let room = null; try { room = await fsGet('rooms/' + entry.rid); } catch (e) { /* */ }
+  if (!room || !room.meta || (room.gs && room.gs.who)) { alert('이미 시작했거나 없어진 대결이에요.'); renderHome(); return; }
+  const who = { pid: me.pid, name: me.name, avatar: me.avatar };
+  try { await fsSet('rooms/' + entry.rid, { gs: { who, score: 0, prog: 0, t: Date.now() } }); } catch (e) { alert('들어갈 수 없어요: ' + e.message); return; }
+  ON = { id: entry.rid, song, mine: 'gs', theirs: 'hs', me: who, opp: room.meta.host, closed: false };
+  runOnline();
+}
+async function runOnline() {
+  const o = ON, song = o.song; let oppState = null;
+  const push = st => fsSet('rooms/' + o.id, { [o.mine]: Object.assign({ who: o.me, t: Date.now() }, st) }).catch(() => { /* next push */ });
+  const poll = setInterval(async () => {
+    try { const r = await fsGet('rooms/' + o.id); oppState = r && r[o.theirs]; } catch (e) { return; }
+    if (oppState) {
+      const box = $('s-opp'); box.querySelector('.ob i').style.width = Math.round((oppState.prog || 0) * 100) + '%';
+      box.querySelector('.os').textContent = (oppState.score || 0) + '점' + (oppState.done ? ' ✔' : '');
+    }
+  }, 1500);
+  const r = await sing(song, { player: o.me, opp: o.opp, onProgress: p => push({ score: p.score, prog: p.prog }) });
+  if (!r) { clearInterval(poll); await push({ left: true, done: true, score: 0, prog: 1 }); ON = null; go('home'); renderHome(); return; }
+  await push({ score: r.score, prog: 1, done: true });
+  // wait for the other singer
+  const box = $('hand'); box.textContent = '';
+  box.append(faceImg(o.me.avatar, 130), el('h2', 'brush', r.score + '점!'), el('p', null, o.opp.name + '이(가) 다 부를 때까지 기다려요… 🎶'));
+  box.children[1].style.fontSize = '50px'; go('hand');
+  const t0 = Date.now(); let lastT = 0, lastSeen = Date.now();
+  while (!(oppState && oppState.done)) {
+    await wait(1000);
+    if (oppState && oppState.t !== lastT) { lastT = oppState.t; lastSeen = Date.now(); }
+    if (Date.now() - lastSeen > 25000 || Date.now() - t0 > song.seconds * 1000 + 60000) break;
+  }
+  clearInterval(poll);
+  const opp = oppState && oppState.done && !oppState.left ? oppState.score : null;
+  let res, note = '';
+  if (opp == null) { res = 'w'; note = o.opp.name + '이(가) 대결을 떠났어요. 이긴 걸로 할게요!'; }
+  else res = r.score === opp ? 'd' : r.score > opp ? 'w' : 'l';
+  saveBattle(o.me.guest ? null : player(), res); saveSolo(player(), song, r.score);
+  ON = null;
+  showVs(song, o.me, r.score, o.opp, opp == null ? 0 : opp, null, note);
+}
+
+go('home'); renderHome();
+window.addEventListener('storage', () => { if ($('scr-home').classList.contains('active')) renderHome(); });
+})();
+</script>
+</body>
+</html>

@@ -572,6 +572,17 @@
         <span class="play">대결하기</span>
       </a>
     </li>
+    <li>
+      <a class="game" href="karaoke.html" data-c="wisteria">
+        <canvas class="art" data-art="karaoke" aria-hidden="true"></canvas>
+        <span class="genre">노래방 · 기력 충전</span>
+        <h2>귀살대 노래방</h2>
+        <p>귀칼 가사로 지은 일본어 동요를 따라 불러요. 가사·한글 발음·뜻이 함께 나오고, 마이크가 음정을 듣고 점수를 매겨요. 혼자서도, 노래 대결로도!</p>
+        <div class="meta"><span>노래 <b>5곡</b></span><span>한 곡 <b>1분 이내</b></span><span>마이크 <b>있으면 좋아요</b></span></div>
+        <span class="seal" aria-hidden="true">歌</span>
+        <span class="play">노래하기</span>
+      </a>
+    </li>
   </ul>
 
   <section class="ranks" aria-labelledby="ranks-title">
@@ -726,7 +737,10 @@
     });
     const my = $('myRank'); my.textContent = '';
     if (r.idx < 0) my.textContent = (cur ? cur.name + '은(는) ' : '') + '아직 기록이 없습니다. 모든 대원은 癸에서 시작합니다.';
-    else { my.append(who + ' 최고 계급 '); my.appendChild(el('b', null, r.char)); my.append(' (' + r.read + ') · ' + KP.GAME_NAMES[r.game]); }
+    else {
+      my.append(who + ' 계급 '); my.appendChild(el('b', null, r.char)); my.append(' (' + r.read + ') · 끝까지 한 판 ' + r.plays + '번');
+      if (r.needMore > 0) { my.append(' · 실력은 '); my.appendChild(el('b', null, r.skillChar)); my.append('급! ' + r.needMore + '판 더 하면 한 계급 올라가요'); }
+    }
 
     const idx = Math.max(0, r.idx);
     const sum = $('perksSum'); sum.textContent = '';
@@ -1360,7 +1374,29 @@
     g.restore();
   }
 
-  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole, nihongo: drawNihongo, battle: drawBattle };
+  function drawKaraoke(g, W, H) {
+    sky(g, W, H, ['#1a0e2e', '#3a1a4a', '#5a2050']);
+    stars(g, W, H, 53, Math.round(W * H / 1500), 0.35);
+    // spotlights
+    for (const x of [0.25, 0.75]) {
+      const gr = g.createLinearGradient(W * x, 0, W * x, H); gr.addColorStop(0, 'rgba(255,200,240,.35)'); gr.addColorStop(1, 'rgba(255,200,240,0)');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(W * x - 6, 0); g.lineTo(W * x + 6, 0); g.lineTo(W * x + W * 0.16, H); g.lineTo(W * x - W * 0.16, H); g.fill();
+    }
+    const s = Math.min(H * 0.66, W * 0.33), by = H - s * 0.34;
+    if (window.KChars) {
+      try { KChars.drawBust(g, 'shinobu', W * 0.2, by, s, { expr: 'smile' }); } catch (e) { /* */ }
+      try { KChars.drawBust(g, 'rengoku', W * 0.8, by, s, { expr: 'smile', flip: true }); } catch (e) { /* */ }
+    }
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
+    const notes = [['♪', 0.42, 0.25], ['♫', 0.55, 0.15], ['♪', 0.62, 0.38], ['♬', 0.36, 0.48]];
+    notes.forEach(([c, x, y], k) => { g.fillStyle = k % 2 ? '#ffe14d' : '#ff8fc8'; g.font = Math.round(H * (0.16 + k * 0.02)) + 'px serif'; g.fillText(c, W * x, H * y); });
+    g.fillStyle = 'rgba(7,8,26,.7)'; const bw = Math.min(W * 0.46, 220), bh = H * 0.2; g.fillRect(W / 2 - bw / 2, H * 0.68, bw, bh);
+    g.fillStyle = '#ff8fc8'; g.font = '700 ' + Math.round(bh * 0.42) + 'px "Zen Maru Gothic","Yu Gothic",sans-serif'; g.fillText('うまい うまいぞ', W / 2, H * 0.68 + bh * 0.36);
+    g.fillStyle = '#f2b24a'; g.font = Math.round(bh * 0.26) + 'px "Gowun Dodum",sans-serif'; g.fillText('우마이 우마이조', W / 2, H * 0.68 + bh * 0.76);
+    g.restore();
+  }
+
+  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole, nihongo: drawNihongo, battle: drawBattle, karaoke: drawKaraoke };
   function render(cv) {
     const fn = SCENES[cv.dataset.art]; if (!fn) return;
     const W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;

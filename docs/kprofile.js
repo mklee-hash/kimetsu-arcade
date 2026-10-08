@@ -53,7 +53,10 @@
  *
  *   KProfile.gameRank(game, id?)    -> rank idx of the current profile's record, -1 if none
  *                                      (optional id: read another profile without switching)
- *   KProfile.rank(id?)              -> { idx, char, read, game } overall = max of the 4 games.
+ *   KProfile.rank(id?)              -> { idx, char, read, game, skill, plays, needMore } overall =
+ *                                      max of the 4 games, capped by experience: rank i also needs
+ *                                      KProfile.NEED[i] finished games (counted in rankUp).
+ *                                      skill = uncapped rank, needMore = games left to unlock it.
  *                                      idx -1 => no record (char/read are '癸'/'계', game null;
  *                                      treat as 0 for perks)
  *   KProfile.perks(game, idx?)      -> perk values (see PERKS below) at rank idx
@@ -267,7 +270,17 @@
   /* ---------------- ranks ---------------- */
   function rankOfChar(c) { return typeof c === 'string' ? RANKS.indexOf(c) : -1; }
   function profileById(id) { return id == null ? curRaw() : find(load(), id); }
+  // Experience: a rank also needs enough finished games (all games together), so one lucky
+  // run can't jump straight to 乙. plays are counted in rankUp(), which every game calls once
+  // per finished game. NEED[i] = finished games needed for rank i.
+  var NEED = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 60];
+  function plays(id) { var p = profileById(id); return Math.max(0, +rawJSON(prefixOf(p) + 'plays', 0) || 0); }
+  function capOf(n) { var c = 0; for (var i = 0; i < NEED.length; i++) if (n >= NEED[i]) c = i; return c; }
   function gameRank(game, id) {
+    var r = skillGameRank(game, id);
+    return r < 0 ? -1 : Math.min(r, capOf(plays(id)));
+  }
+  function skillGameRank(game, id) {
     var p = profileById(id);
     if (id != null && !p) return -1;
     var r = -1, b = rawJSON(prefixOf(p) + game + ':best', null);
@@ -283,9 +296,11 @@
   }
   function rank(id) {
     var top = -1, g = null;
-    GAMES.forEach(function (x) { var i = gameRank(x, id); if (i > top) { top = i; g = x; } });
-    var c = top < 0 ? 0 : top;
-    return { idx: top, char: RANKS[c], read: READ[c], game: g };
+    GAMES.forEach(function (x) { var i = skillGameRank(x, id); if (i > top) { top = i; g = x; } });
+    var n = plays(id), cap = capOf(n), idx = top < 0 ? -1 : Math.min(top, cap), c = idx < 0 ? 0 : idx;
+    var nextNeed = idx + 1 < NEED.length ? Math.max(0, NEED[Math.max(0, idx) + 1] - n) : 0;
+    return { idx: idx, char: RANKS[c], read: READ[c], game: g, skill: top, plays: n,
+      skillChar: RANKS[Math.max(0, top)], skillRead: READ[Math.max(0, top)], needMore: top > idx ? nextNeed : 0 };
   }
   function resolve(idx) { return clampIdx(idx == null ? rank().idx : idx); }
 
@@ -312,6 +327,8 @@
 
   function snapshot() { return rank().idx; }
   function rankUp(before) {
+    // one finished game = one more play for the current player
+    var cp = curRaw(); rawSet(prefixOf(cp) + 'plays', String(plays() + 1));
     var b = clampIdx(before == null ? -1 : before);
     var now = rank().idx;
     if (now <= b) return null;
@@ -335,7 +352,8 @@
     RANKS: RANKS.slice(), READ: READ.slice(), GAMES: GAMES.slice(), GAME_NAMES: GAME_NAMES,
     SLASH_CUTS: SLASH_CUTS.slice(), PERKS: PERKS,
     gameRank: gameRank, rank: rank, perks: perks, perkText: perkText, nextPerk: nextPerk,
-    snapshot: snapshot, rankUp: rankUp, badgeHTML: badgeHTML, esc: esc
+    snapshot: snapshot, rankUp: rankUp, badgeHTML: badgeHTML, esc: esc,
+    plays: plays, NEED: NEED.slice()
   };
   if (typeof window !== 'undefined') window.KProfile = api;
   else if (typeof globalThis !== 'undefined') globalThis.KProfile = api;
