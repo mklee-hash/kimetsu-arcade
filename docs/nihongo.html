@@ -322,10 +322,10 @@ a.arcade-back:hover{background:#ffc766}
 
 <div id="toasts" aria-live="polite"></div>
 
-<script src="kchars.js?v=20261009013643"></script>
-<script src="kprofile.js?v=20261009013643"></script>
-<script src="ksync.js?v=20261009013643"></script>
-<script src="nihongo-data.js?v=20261009013643"></script>
+<script src="kchars.js?v=20261009014343"></script>
+<script src="kprofile.js?v=20261009014343"></script>
+<script src="ksync.js?v=20261009014343"></script>
+<script src="nihongo-data.js?v=20261009014343"></script>
 <script>
 (() => {
 'use strict';
@@ -337,8 +337,9 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 const rnd = n => Math.floor(Math.random() * n);
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const pick = a => a[rnd(a.length)];
-const NAME = { tanjiro: '탄지로', zenitsu: '젠이츠', rengoku: '렌고쿠', inosuke: '이노스케', nezuko: '네즈코', shinobu: '시노부',
-  giyu: '기유', tengen: '텐겐', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', obanai: '오바나이', sanemi: '사네미', kanao: '카나오' };
+const NAME = { tanjiro: '탄지로', nezuko: '네즈코', zenitsu: '젠이츠', inosuke: '이노스케', kanao: '카나오', shinobu: '시노부',
+  giyu: '기유', rengoku: '렌고쿠', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', tengen: '텐겐', obanai: '오바나이', sanemi: '사네미' };
+const FIRST_FRIENDS = ['tanjiro', 'nezuko', 'zenitsu', 'inosuke', 'kanao'];   // can always talk
 const HASHIRA = ['rengoku', 'shinobu', 'giyu', 'tengen', 'mitsuri', 'muichiro', 'gyomei', 'obanai', 'sanemi'];
 const faceCache = {};
 function face(id, px, expr) {
@@ -380,7 +381,7 @@ const seenCount = () => Object.keys(S.seen).filter(k => BY_KEY[k]).length;
 const cleared = () => CHS.filter(c => (S.stars[c.id] || 0) > 0).length;
 function unlocked(i) { return i === 0 || (S.stars[CHS[i - 1].id] || 0) > 0; }
 function metChars() {
-  const set = new Set(['tanjiro', 'zenitsu', 'inosuke', 'nezuko']);   // the first friends can always talk
+  const set = new Set(FIRST_FRIENDS);   // the first friends can always talk
   CHS.forEach(c => { if ((S.stars[c.id] || 0) > 0) { set.add(c.char); c.lines.forEach(l => set.add(l[3] || c.char)); } });
   return Object.keys(NAME).filter(id => set.has(id));
 }
@@ -404,22 +405,24 @@ const sfx = {
 };
 
 /* ---------- Japanese voice (TTS) ---------- */
-let jaVoice = null, jaMale = null;
+let jaVoice = null, maleVoices = [], femaleVoices = [];
 const MALE_RE = /otoya|hattori|ichiro|keita|daichi|naoki|takumi|kenji|shinji|male|男性|ja-jp-x-ja[cd]/i;
 function pickVoice() {
   try {
     const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
-    jaMale = vs.find(v => MALE_RE.test(v.name + ' ' + v.voiceURI)) || null;
-    const fem = vs.filter(v => v !== jaMale && !MALE_RE.test(v.name + ' ' + v.voiceURI));
-    jaVoice = fem.find(v => /google|kyoko|o-ren|nanami|haruka|ayumi/i.test(v.name)) || fem[0] || vs[0] || null;
-  } catch (e) { jaVoice = null; jaMale = null; }
+    maleVoices = vs.filter(v => MALE_RE.test(v.name + ' ' + v.voiceURI));
+    femaleVoices = vs.filter(v => !maleVoices.includes(v));
+    jaVoice = femaleVoices.find(v => /google|kyoko|o-ren|nanami|haruka|ayumi/i.test(v.name)) || femaleVoices[0] || vs[0] || null;
+  } catch (e) { jaVoice = null; maleVoices = []; femaleVoices = []; }
 }
-// who speaks: g = m/f, p = how high the voice is (1 = normal)
+// who speaks: g = m/f, p = pitch (1 = the voice's own), r = speed, v = which voice when a phone has several
 const CAST = {
-  tanjiro: { g: 'm', p: 1.0 }, zenitsu: { g: 'm', p: 1.15 }, rengoku: { g: 'm', p: 0.8 }, inosuke: { g: 'm', p: 0.9 },
-  giyu: { g: 'm', p: 0.85 }, tengen: { g: 'm', p: 0.85 }, muichiro: { g: 'm', p: 1.05 }, gyomei: { g: 'm', p: 0.7 },
-  obanai: { g: 'm', p: 0.95 }, sanemi: { g: 'm', p: 0.85 },
-  nezuko: { g: 'f', p: 1.3 }, shinobu: { g: 'f', p: 1.1 }, mitsuri: { g: 'f', p: 1.25 }, kanao: { g: 'f', p: 1.15 }
+  tanjiro: { g: 'm', p: 0.92, r: 0.95, v: 0 }, zenitsu: { g: 'm', p: 1.08, r: 1.15, v: 1 }, inosuke: { g: 'm', p: 0.8, r: 1.12, v: 2 },
+  rengoku: { g: 'm', p: 0.78, r: 1.02, v: 1 }, giyu: { g: 'm', p: 0.78, r: 0.8, v: 0 }, tengen: { g: 'm', p: 0.82, r: 1.0, v: 2 },
+  muichiro: { g: 'm', p: 0.98, r: 0.78, v: 0 }, gyomei: { g: 'm', p: 0.68, r: 0.72, v: 1 }, obanai: { g: 'm', p: 0.86, r: 0.9, v: 2 },
+  sanemi: { g: 'm', p: 0.76, r: 1.1, v: 0 },
+  nezuko: { g: 'f', p: 1.3, r: 0.85, v: 0 }, shinobu: { g: 'f', p: 1.1, r: 0.88, v: 1 }, mitsuri: { g: 'f', p: 1.25, r: 1.08, v: 2 },
+  kanao: { g: 'f', p: 1.15, r: 0.82, v: 1 }
 };
 if ('speechSynthesis' in window) { pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch (e) { /* old */ } }
 function say(text, slow, who) {
@@ -429,16 +432,15 @@ function say(text, slow, who) {
     const u = new SpeechSynthesisUtterance(String(text).replace(/\//g, ''));
     u.lang = 'ja-JP';
     const c = CAST[who];
-    let pitch = 1.05;
-    if (c && c.g === 'm') {
-      if (jaMale) { u.voice = jaMale; pitch = c.p; }
-      else { if (jaVoice) u.voice = jaVoice; pitch = Math.max(0.1, 0.55 * c.p); }   // no male voice: a deep version of the default one
-    } else {
-      if (jaVoice) u.voice = jaVoice;
-      if (c) pitch = c.p;
-    }
-    u.pitch = Math.min(2, pitch);
-    u.rate = slow ? 0.6 : 0.9;
+    let pitch = 1.05, rate = 0.9;
+    if (c) {
+      rate = 0.9 * c.r;
+      if (c.g === 'm' && maleVoices.length) { u.voice = maleVoices[c.v % maleVoices.length]; pitch = c.p + 0.08; }
+      else if (c.g === 'm') { if (jaVoice) u.voice = jaVoice; pitch = c.p * 0.82; }     // no male voice on this phone: only a little deeper
+      else { const fv = femaleVoices.length ? femaleVoices[c.v % femaleVoices.length] : jaVoice; if (fv) u.voice = fv; pitch = c.p; }
+    } else if (jaVoice) u.voice = jaVoice;
+    u.pitch = Math.min(2, Math.max(0.4, pitch));
+    u.rate = slow ? rate * 0.68 : rate;
     speechSynthesis.speak(u);
   } catch (e) { /* no voice */ }
 }
@@ -831,7 +833,7 @@ function finishQuiz() {
       r.appendChild(rw);
       const nxt = CHS[Q.ci + 1];
       if (nxt) r.appendChild(el('p', null, '🔓 ' + (Q.ci + 2) + '장 「' + nxt.title + '」이(가) 열렸어요!'));
-      const met = [c.char].concat(c.lines.map(l => l[3])).filter((v, k, a) => v && a.indexOf(v) === k && !['tanjiro', 'zenitsu', 'inosuke', 'nezuko'].includes(v));
+      const met = [c.char].concat(c.lines.map(l => l[3])).filter((v, k, a) => v && a.indexOf(v) === k && !FIRST_FRIENDS.includes(v));
       if (met.length) r.appendChild(el('p', 'hint', '💬 이제 ' + met.map(m => NAME[m]).join(', ') + '와(과) 대화할 수 있어요!'));
     }
     save(); checkBadges();
@@ -951,8 +953,31 @@ const GEN = {
   cute: [R('ありがとう！/うれしい！', 'ありがとー！/うれしい！', '고마워! 기뻐!')],
   fallback: [R('なるほど！', 'なるほど！', '그렇구나!'), R('へえ、/すごいね！', 'へー、/すごいね！', '우와, 대단하다!'), R('もう/一回/言って？', 'もー/いっかい/いって？', '한 번 더 말해 줄래?')]
 };
-const NEZ = { greet: '(네즈코가 방긋 웃으며 손을 흔들어요)', bye: '(네즈코가 손을 흔들어요)', hungry: '(네즈코는 잠을 자서 힘을 얻어요)', sleepy: '(네즈코가 상자 속에서 새근새근…)',
-  scared: '(네즈코가 앞에 서서 지켜 줘요!)', demon: '(네즈코가 발차기 자세!)', like: '(네즈코가 머리를 쓰다듬어 달래요)', cute: '(네즈코가 부끄러워해요)', thanks: '(네즈코가 고개를 끄덕여요)' };
+// Nezuko mostly hums "むー", but she can say a few little words now
+const NEZ = {
+  greet: [R('おはよう！', 'おはよー！', '좋은 아침! (방긋 웃으며 손을 흔들어요)'), R('むー！', 'むー！', '(반갑게 손을 흔들어요)')],
+  how: [R('うん！/げんき！', 'うん！/げんき！', '응! 잘 지내!')],
+  name: [R('ねずこ！', 'ねずこ！', '네즈코! (자기 이름을 말해요)')],
+  myname: [R('うん！/よろしく！', 'うん！/よろしく！', '응! 잘 부탁해!')],
+  thanks: [R('うん！', 'うん！', '응! (고개를 끄덕여요)')],
+  sorry: [R('だいじょうぶ。', 'だいじょーぶ。', '괜찮아. (머리를 쓰다듬어 줘요)')],
+  bye: [R('またね！', 'またね！', '또 봐! (손을 흔들어요)')],
+  hungry: [R('むー…', 'むー…', '(네즈코는 밥 대신 잠을 자서 힘을 얻어요)')],
+  food: [R('むー…？', 'むー…？', '(고개를 갸웃해요. 네즈코는 밥 대신 잠을 자요)')],
+  sleepy: [R('ねむい…', 'ねむい…', '졸려… (상자 속에서 새근새근)')],
+  scared: [R('まもる！', 'まもる！', '지킬게! (앞에 서서 지켜 줘요)')],
+  demon: [R('むー！', 'むー！', '(발차기 자세! 오빠를 지켜요)')],
+  breath: [R('むー！', 'むー！', '(분홍 불꽃 혈귀술!)')],
+  like: [R('すき！', 'すき！', '좋아! (방긋)')],
+  cute: [R('えへへ。', 'えへへ。', '에헤헤. (부끄러워해요)')],
+  strong: [R('つよい！', 'つよい！', '세다! (주먹을 꼭 쥐어요)')],
+  play: [R('あそぶ！', 'あそぶ！', '놀자! (폴짝폴짝)')],
+  yes: [R('うん！', 'うん！', '응!')],
+  no: [R('むー。', 'むー。', '(고개를 저어요)')],
+  catch: [R('おにいちゃん！', 'おにいちゃん！', '오빠! (탄지로를 불러요)')],
+  age_you: [R('むー？', 'むー？', '(손가락을 꼽아 보다가 고개를 갸웃해요)')],
+  fallback: [R('むー！', 'むー！', '(방긋 웃어요)'), R('うん！', 'うん！', '응! (고개를 끄덕여요)'), R('おにいちゃん？', 'おにいちゃん？', '오빠? (두리번두리번)')]
+};
 const RULES = [
   ['age_me', /(\d{1,2})\s*(살|세|さい|歳)/],
   ['myname', /(?:내|제)\s*이름은\s*([^\s.!?~]+)|(?:わたし|ぼく|おれ|私|僕|俺)は\s*([^\s。！？]+?)(?:です|だ)/],
@@ -999,7 +1024,7 @@ function detect(text) {
 }
 function replyFor(intent, m) {
   const P = PERSONA[partner] || PERSONA.tanjiro;
-  if (P.nez) return R('むー！', 'むー！', NEZ[intent] || pick(['(네즈코가 고개를 갸웃해요)', '(네즈코가 방긋 웃어요)', '(네즈코가 고개를 끄덕여요)']));
+  if (P.nez) return pick(NEZ[intent] || NEZ.fallback);
   if (intent === 'name') return P.self;
   if (intent === 'breath') return P.breath;
   if (intent === 'food') return P.fav;
@@ -1070,7 +1095,7 @@ function renderChips() {
 function renderPartners() {
   const box = $('partners'); box.textContent = '';
   const left = Object.keys(NAME).length - metChars().length;
-  $('partners-more').textContent = left > 0 ? '🔒 주(柱)와 카나오 등 ' + left + '명은 수련 지도에서 만나면 함께 이야기할 수 있어요.' : '모든 대원과 이야기할 수 있어요! 🎉';
+  $('partners-more').textContent = left > 0 ? '🔒 주(柱) ' + left + '명은 수련 지도에서 만나면 함께 이야기할 수 있어요.' : '모든 대원과 이야기할 수 있어요! 🎉';
   metChars().forEach(id => {
     const b = el('button', 'partner'); b.type = 'button'; b.setAttribute('aria-pressed', String(id === partner));
     b.append(faceImg(id, 52, 'smile'), el('span', null, NAME[id]));
@@ -1082,7 +1107,7 @@ function startConversation() {
   $('log').textContent = '';
   const P = PERSONA[partner];
   const nm = curName();
-  if (P.nez) botSay(R('むー！', 'むー！', '(네즈코가 반갑게 손을 흔들어요! 네즈코는 말 대신 몸짓으로 대답해요)'));
+  if (P.nez) botSay(R('むー！/おはよう！', 'むー！/おはよー！', '음! 좋은 아침! (네즈코는 아직 짧은 말만 할 수 있어요)'));
   else botSay({ jp: P.self.jp, kana: P.self.kana, ko: P.self.ko + (nm ? ' ' + nm + ', 반가워!' : ' 반가워!') });
 }
 function openChat() {

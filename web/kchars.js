@@ -15,7 +15,7 @@
  *       + the other hashira (주): giyu (water2), tengen (sound), mitsuri (love), muichiro (mist),
  *         gyomei (stone), obanai (serpent), sanemi (wind)
  *       + kanao (flower)
- *     Iterate this list to offer every character (new entries are only ever appended).
+ *     Iterate this list to offer every character (display order; games store the id, never the index).
  *
  *   KChars.byStyle(style)          -> entry for 'water'|'flame'|'thunder'|'beast'|'blood'|'insect' (or null)
  *   KChars.byId(id)                -> entry for an id (or null)            [extra helper]
@@ -1165,8 +1165,8 @@
     blade: 'plain', bladeCol: '#f0b8d8', guard: '#e06aa8', hilt: '#3a2240', trailMix: 0.25
   };
 
-  var LIST = [C.tanjiro, C.zenitsu, C.rengoku, C.inosuke, C.nezuko, C.shinobu,
-    C.giyu, C.tengen, C.mitsuri, C.muichiro, C.gyomei, C.obanai, C.sanemi, C.kanao].map(function (c) {
+  var LIST = [C.tanjiro, C.nezuko, C.zenitsu, C.inosuke, C.kanao, C.shinobu, C.giyu, C.rengoku,
+    C.mitsuri, C.muichiro, C.gyomei, C.tengen, C.obanai, C.sanemi].map(function (c) {
     return { id: c.id, name: c.name, style: c.style, color: c.color, title: c.title };
   });
 
