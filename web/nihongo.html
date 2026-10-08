@@ -403,24 +403,46 @@ const sfx = {
 };
 
 /* ---------- Japanese voice (TTS) ---------- */
-let jaVoice = null;
+let jaVoice = null, jaMale = null;
+const MALE_RE = /otoya|hattori|ichiro|keita|daichi|naoki|takumi|kenji|shinji|male|男性|ja-jp-x-ja[cd]/i;
 function pickVoice() {
   try {
-    const vs = speechSynthesis.getVoices();
-    jaVoice = vs.find(v => /^ja/i.test(v.lang) && /google|kyoko|o-ren|nanami|haruka|ayumi/i.test(v.name)) || vs.find(v => /^ja/i.test(v.lang)) || null;
-  } catch (e) { jaVoice = null; }
+    const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+    jaMale = vs.find(v => MALE_RE.test(v.name + ' ' + v.voiceURI)) || null;
+    const fem = vs.filter(v => v !== jaMale && !MALE_RE.test(v.name + ' ' + v.voiceURI));
+    jaVoice = fem.find(v => /google|kyoko|o-ren|nanami|haruka|ayumi/i.test(v.name)) || fem[0] || vs[0] || null;
+  } catch (e) { jaVoice = null; jaMale = null; }
 }
+// who speaks: g = m/f, p = how high the voice is (1 = normal)
+const CAST = {
+  tanjiro: { g: 'm', p: 1.0 }, zenitsu: { g: 'm', p: 1.15 }, rengoku: { g: 'm', p: 0.8 }, inosuke: { g: 'm', p: 0.9 },
+  giyu: { g: 'm', p: 0.85 }, tengen: { g: 'm', p: 0.85 }, muichiro: { g: 'm', p: 1.05 }, gyomei: { g: 'm', p: 0.7 },
+  obanai: { g: 'm', p: 0.95 }, sanemi: { g: 'm', p: 0.85 },
+  nezuko: { g: 'f', p: 1.3 }, shinobu: { g: 'f', p: 1.1 }, mitsuri: { g: 'f', p: 1.25 }, kanao: { g: 'f', p: 1.15 }
+};
 if ('speechSynthesis' in window) { pickVoice(); try { speechSynthesis.addEventListener('voiceschanged', pickVoice); } catch (e) { /* old */ } }
-function say(text, slow) {
+function say(text, slow, who) {
   if (!('speechSynthesis' in window)) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(String(text).replace(/\//g, ''));
-    u.lang = 'ja-JP'; if (jaVoice) u.voice = jaVoice;
-    u.rate = slow ? 0.6 : 0.9; u.pitch = 1.05;
+    u.lang = 'ja-JP';
+    const c = CAST[who];
+    let pitch = 1.05;
+    if (c && c.g === 'm') {
+      if (jaMale) { u.voice = jaMale; pitch = c.p; }
+      else { if (jaVoice) u.voice = jaVoice; pitch = Math.max(0.1, 0.55 * c.p); }   // no male voice: a deep version of the default one
+    } else {
+      if (jaVoice) u.voice = jaVoice;
+      if (c) pitch = c.p;
+    }
+    u.pitch = Math.min(2, pitch);
+    u.rate = slow ? 0.6 : 0.9;
     speechSynthesis.speak(u);
   } catch (e) { /* no voice */ }
 }
+// lines are read by the character who says them; single words by the narrator
+const sayIt = (it, slow) => say(it.jp, slow, it.type === 'l' ? it.sp : null);
 
 /* ---------- speech recognition ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -476,7 +498,7 @@ function speakBox(it, onResult, opts) {
     b.addEventListener('click', () => { sfx.ok(); res.textContent = '잘했어요! 🎉'; mi.style.width = '100%'; S.speakOK++; save(); checkBadges(); report(true); b.disabled = true; });
     selfRow.insertBefore(b, selfRow.firstChild);
   }
-  if (!SR) { mic.textContent = '🔊'; mic.setAttribute('aria-label', '다시 듣기'); mic.addEventListener('click', () => say(it.jp)); showSelf(); }
+  if (!SR) { mic.textContent = '🔊'; mic.setAttribute('aria-label', '다시 듣기'); mic.addEventListener('click', () => sayIt(it)); showSelf(); }
   else mic.addEventListener('click', async () => {
     if (recBusy) return;
     mic.classList.add('rec'); res.textContent = '듣고 있어요… 말해 보세요!'; heard.textContent = '';
@@ -626,8 +648,8 @@ function itemCard(it, box) {
   const pr = el('div', 'pron', it.pron);
   const mean = el('div', 'mean', it.ko);
   const row = el('div', 'btn-row'); row.style.width = '100%';
-  const b1 = el('button', 'btn small', '🔊 듣기'); b1.type = 'button'; b1.addEventListener('click', () => say(it.jp));
-  const b2 = el('button', 'btn small', '🐢 천천히'); b2.type = 'button'; b2.addEventListener('click', () => say(it.jp, true));
+  const b1 = el('button', 'btn small', '🔊 듣기'); b1.type = 'button'; b1.addEventListener('click', () => sayIt(it));
+  const b2 = el('button', 'btn small', '🐢 천천히'); b2.type = 'button'; b2.addEventListener('click', () => sayIt(it, true));
   row.append(b1, b2);
   box.append(who, jp);
   if (kana.textContent) box.appendChild(kana);
@@ -643,7 +665,7 @@ function renderLearn() {
   L.items.forEach((_, k) => dots.appendChild(el('i', k <= L.i ? 'on' : null)));
   $('learn-prev').disabled = L.i === 0;
   $('learn-next').textContent = L.i === L.items.length - 1 ? '문제 풀러 가기! ⚔️' : '다음 ▶';
-  setTimeout(() => say(it.jp), 250);
+  setTimeout(() => sayIt(it), 250);
 }
 $('learn-prev').addEventListener('click', () => { if (L.i > 0) { sfx.tap(); L.i--; renderLearn(); window.scrollTo(0, 0); } });
 $('learn-next').addEventListener('click', () => {
@@ -696,21 +718,21 @@ function renderQ() {
   const pr = el('div', 'qprompt');
   if (q.type === 'meaning') {
     pr.append(el('div', 'ask', '무슨 뜻일까요?'), el('div', 'big-jp jp', it.jp), el('div', 'pron', it.pron));
-    const sb = el('button', 'btn small', '🔊 듣기'); sb.type = 'button'; sb.addEventListener('click', () => say(it.jp)); pr.appendChild(sb);
+    const sb = el('button', 'btn small', '🔊 듣기'); sb.type = 'button'; sb.addEventListener('click', () => sayIt(it)); pr.appendChild(sb);
     body.appendChild(pr);
     const opts = shuffle([it].concat(distractPool(it, 'ko')));
     const grid = el('div', 'opts');
     opts.forEach(o => { const b = optBtn(o.ko); b.addEventListener('click', () => answer(o === it, b, grid, it)); grid.appendChild(b); });
-    body.appendChild(grid); setTimeout(() => say(it.jp), 200);
+    body.appendChild(grid); setTimeout(() => sayIt(it), 200);
   } else if (q.type === 'listen') {
-    const lb = el('button', 'listen-big', '🔊'); lb.type = 'button'; lb.setAttribute('aria-label', '다시 듣기'); lb.addEventListener('click', () => say(it.jp));
-    const slow = el('button', 'btn small', '🐢 천천히'); slow.type = 'button'; slow.addEventListener('click', () => say(it.jp, true));
+    const lb = el('button', 'listen-big', '🔊'); lb.type = 'button'; lb.setAttribute('aria-label', '다시 듣기'); lb.addEventListener('click', () => sayIt(it));
+    const slow = el('button', 'btn small', '🐢 천천히'); slow.type = 'button'; slow.addEventListener('click', () => sayIt(it, true));
     pr.append(el('div', 'ask', '잘 듣고 들린 말을 골라요!'), lb, slow);
     body.appendChild(pr);
     const opts = shuffle([it].concat(distractPool(it, 'jp')));
     const grid = el('div', 'opts');
     opts.forEach(o => { const b = optBtn(o.jp, o.pron); b.addEventListener('click', () => answer(o === it, b, grid, it)); grid.appendChild(b); });
-    body.appendChild(grid); setTimeout(() => say(it.jp), 250);
+    body.appendChild(grid); setTimeout(() => sayIt(it), 250);
   } else if (q.type === 'reverse') {
     pr.append(el('div', 'ask', '일본어로 뭐라고 할까요?'), el('div', 'mean', it.ko));
     body.appendChild(pr);
@@ -720,7 +742,7 @@ function renderQ() {
     body.appendChild(grid);
   } else if (q.type === 'arrange') {
     const who = el('div', 'who'); who.appendChild(faceImg(it.sp, 40)); who.append(NAME[it.sp] + '의 대사를 만들어요');
-    const sb = el('button', 'btn small', '🔊 힌트 듣기'); sb.type = 'button'; sb.addEventListener('click', () => say(it.jp));
+    const sb = el('button', 'btn small', '🔊 힌트 듣기'); sb.type = 'button'; sb.addEventListener('click', () => sayIt(it));
     pr.append(who, el('div', 'ask', '순서대로 눌러서 대사를 완성해요!'), el('div', 'mean', it.ko), sb);
     body.appendChild(pr);
     const ans = el('div', 'answer'), tiles = el('div', 'tiles'), picked = [];
@@ -751,7 +773,7 @@ function renderQ() {
       setTimeout(() => nextQ(), ok ? 900 : 0);
     }, { skip: true }));
     body.appendChild(card);
-    setTimeout(() => say(it.jp), 250);
+    setTimeout(() => sayIt(it), 250);
   }
   Q.locked = false;
 }
@@ -781,7 +803,7 @@ function answer(ok, btn, grid, it) {
   const nb = el('button', 'btn primary', '다음 ▶'); nb.type = 'button'; nb.addEventListener('click', () => { sfx.tap(); nextQ(); });
   fb.appendChild(nb);
   $('qbody').appendChild(fb);
-  say(it.jp);
+  sayIt(it);
   setTimeout(() => { try { nb.focus({ preventScroll: true }); fb.scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) { /* */ } }, 50);
 }
 function nextQ() { Q.i++; if (Q.i >= Q.qs.length) finishQuiz(); else { renderQ(); window.scrollTo(0, 0); } }
@@ -1006,13 +1028,13 @@ function bubbleBody(r, opts) {
   if (pr && hasJp(r.kana)) b.appendChild(el('div', 'b-pr', pr));
   if (r.ko) b.appendChild(el('div', 'b-ko', r.ko));
   if (opts && opts.note) b.appendChild(el('div', 'b-note', opts.note));
-  if (hasJpAny(jpText)) { const s = el('button', 'say', '🔊 다시 듣기'); s.type = 'button'; s.addEventListener('click', () => say(jpText)); b.appendChild(s); }
+  if (hasJpAny(jpText)) { const who = opts && opts.who; const s = el('button', 'say', '🔊 다시 듣기'); s.type = 'button'; s.addEventListener('click', () => say(jpText, false, who)); b.appendChild(s); }
   return b;
 }
 function addMsg(who, r, opts) {
   const m = el('div', 'msg ' + who);
   if (who === 'bot') m.appendChild(faceImg(partner, 40, 'smile'));
-  m.appendChild(bubbleBody(r, opts));
+  m.appendChild(bubbleBody(r, who === 'bot' ? Object.assign({ who: partner }, opts || {}) : opts));
   $('log').appendChild(m);
   m.scrollIntoView({ block: 'end', behavior: 'smooth' });
   return m;
@@ -1020,7 +1042,7 @@ function addMsg(who, r, opts) {
 function botSay(r) {
   const typing = el('div', 'msg bot'); typing.appendChild(faceImg(partner, 40)); const bb = el('div', 'bubble'); bb.appendChild(el('span', 'typing', '···')); typing.appendChild(bb);
   $('log').appendChild(typing); typing.scrollIntoView({ block: 'end', behavior: 'smooth' });
-  setTimeout(() => { typing.remove(); addMsg('bot', r); say(r.jp); renderChips(); }, 650);
+  setTimeout(() => { typing.remove(); addMsg('bot', r); say(r.jp, false, partner); renderChips(); }, 650);
 }
 function userSend(text, chip) {
   text = String(text || '').trim(); if (!text) return;
@@ -1093,6 +1115,27 @@ document.addEventListener('pointerdown', () => {
   if (primed) return; primed = true; ac();
   try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'ja-JP'; speechSynthesis.speak(u); } catch (e) { /* */ }
 }, { capture: true });
+
+/* ---------- phone back button: one screen back instead of leaving ---------- */
+(function () {
+  let skipPop = false;
+  const origGo = go;
+  const active = () => SCREENS.find(n => $('scr-' + n).classList.contains('active'));
+  go = function (name) {
+    origGo(name);
+    const ours = history.state && history.state.nh;
+    if (name !== 'home' && !ours) { try { history.pushState({ nh: 1 }, ''); } catch (e) { /* */ } }
+    else if (name === 'home' && ours) { skipPop = true; try { history.back(); } catch (e) { skipPop = false; } }
+  };
+  window.addEventListener('popstate', () => {
+    if (skipPop) { skipPop = false; return; }
+    const cur = active(), chapter = Q && Q.mode === 'chapter';
+    let to = 'home';
+    if (cur === 'home') return;
+    if (cur === 'learn' || ((cur === 'quiz' || cur === 'result') && chapter)) to = 'map';
+    go(to);
+  });
+})();
 
 /* ---------- boot ---------- */
 go('home');

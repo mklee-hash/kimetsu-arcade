@@ -1894,6 +1894,23 @@ window.addEventListener('pageshow', e => {
   if (mode === 'title') updateTitleBest();
   else if (mode === 'select') { buildCards(); updatePerkBox(); }
 });
+/* ---- phone back button: step back one screen instead of leaving the game ---- */
+(function(){
+  let skipPop=false;
+  const isRoot=()=>(mode==='title');
+  const origShow=showScreen;
+  showScreen=function(id){
+    origShow(id);
+    const ours=history.state&&history.state.kb;
+    if(!isRoot()&&!ours){try{history.pushState({kb:1},'');}catch(e){}}
+    else if(isRoot()&&ours){skipPop=true;try{history.back();}catch(e){skipPop=false;}}
+  };
+  window.addEventListener('popstate',()=>{
+    if(skipPop){skipPop=false;return;}
+    try{ if(mode==='play'){if(paused)toTitle();else pauseGame();}else if(mode==='select')$('#btnSelBack').click();else if(mode==='nightRes'||mode==='result')toTitle(); }catch(e){}
+    if(!isRoot()&&!(history.state&&history.state.kb)){try{history.pushState({kb:1},'');}catch(e){}}
+  });
+})();
 requestAnimationFrame(frame);
 </script>
 </body>

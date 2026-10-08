@@ -1939,6 +1939,23 @@ window.addEventListener('pageshow',e=>{
   renderTitleBest();renderSelect();renderProfile();syncSettingsUI();updateMuteBtn();
 });
 if(document.fonts&&document.fonts.load){document.fonts.load('40px "Nanum Brush Script"').catch(()=>{});}
+/* ---- phone back button: step back one screen instead of leaving the game ---- */
+(function(){
+  let skipPop=false;
+  const isRoot=()=>(curScreen==='scr-title');
+  const origShow=showScreen;
+  showScreen=function(id){
+    origShow(id);
+    const ours=history.state&&history.state.kb;
+    if(!isRoot()&&!ours){try{history.pushState({kb:1},'');}catch(e){}}
+    else if(isRoot()&&ours){skipPop=true;try{history.back();}catch(e){skipPop=false;}}
+  };
+  window.addEventListener('popstate',()=>{
+    if(skipPop){skipPop=false;return;}
+    try{ if(mode==='game'&&play){if(play.paused)$('#p-quit').click();else pauseGame();}else if(curScreen==='scr-select')showScreen('scr-title');else if(curScreen==='scr-settings')$('#set-back').click();else if(curScreen==='scr-result')$('#res-back').click(); }catch(e){}
+    if(!isRoot()&&!(history.state&&history.state.kb)){try{history.pushState({kb:1},'');}catch(e){}}
+  });
+})();
 requestAnimationFrame(frame);
 })();
 </script>

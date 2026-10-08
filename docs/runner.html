@@ -309,9 +309,9 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
   </div>
 </section>
 
-<script src="kchars.js?v=20261009010935"></script>
-<script src="kprofile.js?v=20261009010935"></script>
-<script src="ksync.js?v=20261009010935"></script>
+<script src="kchars.js?v=20261009013433"></script>
+<script src="kprofile.js?v=20261009013433"></script>
+<script src="ksync.js?v=20261009013433"></script>
 <script>
 (function(){
 'use strict';
@@ -1868,6 +1868,23 @@ renderTitleBest();renderProfile();renderChars();renderSongs();syncSettingsUI();u
 // 허브에서 대원을 바꾸고 뒤로 돌아온 경우(bfcache) 새 대원 기록으로 다시 읽기
 window.addEventListener('pageshow',e=>{if(!e.persisted||mode==='game')return;loadStore();applyVolumes();renderTitleBest();renderProfile();renderChars();renderSongs();syncSettingsUI();updateMuteBtn();});
 if(document.fonts&&document.fonts.load){document.fonts.load('40px "Nanum Brush Script"').catch(()=>{});}
+/* ---- phone back button: step back one screen instead of leaving the game ---- */
+(function(){
+  let skipPop=false;
+  const isRoot=()=>(curScreen==='scr-title');
+  const origShow=showScreen;
+  showScreen=function(id){
+    origShow(id);
+    const ours=history.state&&history.state.kb;
+    if(!isRoot()&&!ours){try{history.pushState({kb:1},'');}catch(e){}}
+    else if(isRoot()&&ours){skipPop=true;try{history.back();}catch(e){skipPop=false;}}
+  };
+  window.addEventListener('popstate',()=>{
+    if(skipPop){skipPop=false;return;}
+    try{ if(mode==='game'&&play){if(play.paused)$('#p-quit').click();else pauseGame();}else if(curScreen==='scr-char')$('#char-back').click();else if(curScreen==='scr-song')$('#song-back').click();else if(curScreen==='scr-result')$('#res-songs').click(); }catch(e){}
+    if(!isRoot()&&!(history.state&&history.state.kb)){try{history.pushState({kb:1},'');}catch(e){}}
+  });
+})();
 requestAnimationFrame(frame);
 })();
 </script>

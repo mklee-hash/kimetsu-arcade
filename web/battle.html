@@ -403,8 +403,9 @@ async function pushMine() {
   try { await fsSet('rooms/' + G.id, { [G.mine]: { who: G.me, a: G.answers, t: Date.now() } }); } catch (e) { /* retried on next push / heartbeat */ }
 }
 async function waitOpponent(i) {
-  let lastBeat = Date.now();
+  let lastBeat = Date.now(); const M = G;
   while (true) {
+    if (G !== M || !M || M.closed) return null;
     let room = null; try { room = await fsGet('rooms/' + G.id); } catch (e) { /* keep trying */ }
     const th = room && room[G.theirs];
     if (th && th.a && th.a[i]) return th.a[i];
@@ -415,20 +416,24 @@ async function waitOpponent(i) {
   }
 }
 async function startMatch() {
+  const M = G, gone = () => G !== M || !M || M.closed;
   G.answers = []; G.hp = { me: MAX_HP, opp: MAX_HP }; G.seenLocal = Date.now();
   fighter('f-me', G.me, MAX_HP); fighter('f-opp', G.opp, MAX_HP);
   $('q').textContent = ''; $('opts').textContent = ''; $('status').textContent = '';
   go('battle');
   const c = $('count'); c.hidden = false;
-  for (const t of ['3', '2', '1', '시작!']) { c.textContent = t; sfx.tick(); await wait(800); }
+  for (const t of ['3', '2', '1', '시작!']) { if (gone()) { c.hidden = true; return; } c.textContent = t; sfx.tick(); await wait(800); }
   c.hidden = true;
   for (let i = 0; i < G.qs.length; i++) {
     const mine = await askQuestion(i);
+    if (gone()) return;
     G.answers[i] = mine; pushMine();
     $('status').innerHTML = mine.ok ? '정답! <b>' + (mine.ms / 1000).toFixed(1) + '초</b> · 상대를 기다려요…' : '아쉬워요! 상대를 기다려요…';
     const theirs = await waitOpponent(i);
+    if (gone()) return;
     if (!theirs) { finish('left'); return; }
     await reveal(i, mine, theirs);
+    if (gone()) return;
     if (G.hp.me <= 0 || G.hp.opp <= 0) break;
   }
   finish();
@@ -509,6 +514,25 @@ function finish(why) {
 $('create').addEventListener('click', createRoom);
 $('cancel').addEventListener('click', cancelRoom);
 window.addEventListener('storage', () => { if ($('scr-lobby').classList.contains('active')) renderBoard(); });
+/* ---- phone back button: one screen back (a running match is abandoned) ---- */
+(function () {
+  let skipPop = false;
+  const origGo = go;
+  go = function (n) {
+    origGo(n);
+    const ours = history.state && history.state.bt;
+    if (n !== 'lobby' && !ours) { try { history.pushState({ bt: 1 }, ''); } catch (e) { /* */ } }
+    else if (n === 'lobby' && ours) { skipPop = true; try { history.back(); } catch (e) { skipPop = false; } }
+  };
+  window.addEventListener('popstate', () => {
+    if (skipPop) { skipPop = false; return; }
+    if ($('scr-lobby').classList.contains('active')) return;
+    if ($('scr-wait').classList.contains('active')) { cancelRoom(); return; }
+    if (G) { G.closed = true; pushMine && G.answers && fsSet('rooms/' + G.id, { [G.mine]: { who: G.me, a: G.answers, t: 0, left: true } }).catch(() => { /* */ }); }
+    $('count').hidden = true;
+    G = null; openLobby();
+  });
+})();
 openLobby();
 })();
 </script>
