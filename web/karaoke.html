@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>귀살대 노래방</title>
 <meta name="theme-color" content="#0b0e22">
@@ -68,6 +69,8 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
 .lyr div{border-left:3px solid rgba(255,143,200,.5);padding-left:8px}
 .lyr .k{font-family:var(--jp);font-weight:700;font-size:16px}
 .lyr .p{color:var(--dawn)}
+.ghead{padding:8px 2px 0}
+.ghead h3{font-size:20px;color:var(--pink)}
 .invites{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .invite{display:flex;gap:10px;align-items:center;background:rgba(216,52,63,.15);padding:8px 10px;clip-path:var(--cut-s)}
 .invite img{width:44px;height:44px;border-radius:50%}
@@ -150,7 +153,7 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
       <ul class="invites" id="invites"></ul>
     </div>
     <ul class="songs" id="songs"></ul>
-    <p class="hint">노래는 모두 저작권이 끝난 세계 민요 멜로디에, 이 게임을 위해 새로 지은 귀칼 가사를 붙였어요.</p>
+    <p class="hint">창작곡은 이 게임을 위해 새로 지었고, 동요는 저작권이 끝난 세계 민요 멜로디에 귀칼 가사를 붙였어요.</p>
   </div>
 </section>
 
@@ -390,7 +393,7 @@ const fold = (p, target) => p + 12 * Math.round((target - p) / 12);
 let SESSION = null;
 // Korean letters for each sung mora (uses the long-vowel spelling when given: ー → ~)
 function moraHangul(m) {
-  if (m === 'ん') return 'ㄴ';
+  if (m === 'ん') return '응';   // a held ん is hummed: 'nn~'
   if (m === 'っ') return 'ㅅ';
   if (m === 'ー') return '~';
   return D.pron(m) || m;
@@ -555,7 +558,11 @@ function renderHome() {
   box.append(faceImg(p.avatar, 60), e);
   const ul = $('songs'); ul.textContent = '';
   const best = p.guest ? {} : recFor(p, 'best', {});
-  SONGS.forEach(s => {
+  const groups = [['pop', '🎤 J-pop 스타일 창작곡', '이 게임을 위해 새로 지은 멜로디와 가사예요.'], ['kids', '🎵 동요 멜로디', '익숙한 세계 민요 멜로디에 귀칼 가사를 붙였어요.']];
+  const order = [];
+  groups.forEach(g => { const list = SONGS.filter(x => (x.genre || 'kids') === g[0]); if (list.length) order.push(g, ...list); });
+  order.forEach(s => {
+    if (Array.isArray(s)) { const h = el('li', 'ghead'); h.append(el('h3', null, s[1]), el('p', 'hint', s[2])); ul.appendChild(h); return; }
     const li = el('li', 'song'), top = el('div', 'top');
     const mid = el('div'); mid.append(el('h3', null, s.title), el('div', 'ko', s.ko + ' · ' + (NAME[s.char] || '')), el('div', 'tune', s.tune + ' · ' + Math.round(s.seconds) + '초'));
     const b = el('div', 'best'); if (best[s.id] != null) { b.append(el('b', null, best[s.id] + '점'), '최고 점수'); }
