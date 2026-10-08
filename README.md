@@ -6,8 +6,8 @@
 
 ## 🔗 플레이하기
 
-**https://mklee-hash.github.io/kimetsu-arcade/** — Claude 계정 없이 누구나 바로 접속 가능
-(GitHub Pages가 `main` 브랜치의 `docs/`를 그대로 서빙한다).
+GitHub Pages가 `main` 브랜치의 `docs/`를 그대로 서빙한다. 주소는 가족끼리만 공유한다
+(모든 페이지에 `noindex` 메타가 있어 검색엔진에 올라가지 않는다).
 
 ## 게임
 
