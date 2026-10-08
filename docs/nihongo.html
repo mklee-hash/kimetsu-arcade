@@ -466,11 +466,12 @@ function speakBox(it, onResult, opts) {
   let reported = false, tries = 0;
   const report = ok => { if (reported) return; reported = true; if (onResult) onResult(ok); };
   const selfRow = el('div', 'btn-row'); selfRow.style.width = '100%';
+  let selfShown = false;
   function showSelf() {
-    if (selfRow.childNodes.length) return;
+    if (selfShown) return; selfShown = true;
     const b = el('button', 'btn small gold', '따라 말했어요! 👍'); b.type = 'button';
     b.addEventListener('click', () => { sfx.ok(); res.textContent = '잘했어요! 🎉'; mi.style.width = '100%'; S.speakOK++; save(); checkBadges(); report(true); b.disabled = true; });
-    selfRow.appendChild(b);
+    selfRow.insertBefore(b, selfRow.firstChild);
   }
   if (!SR) { mic.textContent = '🔊'; mic.setAttribute('aria-label', '다시 듣기'); mic.addEventListener('click', () => say(it.jp)); showSelf(); }
   else mic.addEventListener('click', async () => {
@@ -489,6 +490,7 @@ function speakBox(it, onResult, opts) {
       S.speakOK++; save(); checkBadges(); report(true);
     } catch (err) {
       mic.classList.remove('rec');
+      if (err === 'no-speech' || err === 'aborted') { tries++; res.textContent = '소리가 잘 안 들렸어요. 한 번 더!'; if (tries >= 2) showSelf(); return; }
       res.textContent = err === 'not-allowed' || err === 'service-not-allowed' ? '마이크를 쓸 수 없어요. 소리 내어 말하고 아래 버튼을 눌러요.' : '마이크가 잘 안 돼요. 소리 내어 말하고 아래 버튼을 눌러요.';
       showSelf();
     }
@@ -985,6 +987,7 @@ function replyFor(intent, m) {
     if (nm) return { jp: nm + 'さん、/よろしくね！', kana: 'さん、/よろしくね！', ko: nm + '님, 잘 부탁해!', namePre: nm };
   }
   if (intent === 'greet' && partner === 'rengoku') return R('うむ！/よく/来た！', 'うむ！/よく/きた！', '음! 잘 왔다!');
+  if (intent === 'scared' && (partner === 'shinobu' || partner === 'mitsuri')) return R('大丈夫。/私が/守ります！', 'だいじょーぶ。/わたしが/まもります！', '괜찮아요. 제가 지켜 줄게요!');
   if (intent === 'scared' && partner === 'zenitsu') return R('俺も/怖いよー！', 'おれも/こわいよー！', '나도 무서워~!');
   if (intent === 'hungry' && partner === 'rengoku') return R('うまい！/うまい！', 'うまい！/うまい！', '맛있다! 맛있다!');
   if (intent === 'demon' && partner === 'inosuke') return R('猪突/猛進！', 'ちょとつ/もーしん！', '저돌맹진!');
@@ -994,7 +997,7 @@ function bubbleBody(r, opts) {
   const b = el('div', 'bubble');
   const jpText = r.jp.replace(/\//g, '');
   if (r.jp) b.appendChild(el('div', 'b-jp', jpText));
-  const pr = r.namePre ? r.namePre + D.pron(r.kana) : (r.kana ? D.pron(r.kana) : '');
+  const pr = r.namePre ? r.namePre + D.pron(r.kana) : (r.kana ? D.pron(r.kana.replace(/(こんにち|こんばん)は/g, '$1わ')) : '');
   if (pr && hasJp(r.kana)) b.appendChild(el('div', 'b-pr', '발음 ' + pr));
   if (r.ko) b.appendChild(el('div', 'b-ko', (r.jp ? '뜻 ' : '') + r.ko));
   if (opts && opts.note) b.appendChild(el('div', 'b-note', opts.note));
@@ -1075,7 +1078,7 @@ $('chat-mic').addEventListener('click', async () => {
     if (alts && alts.length) userSend(alts[0]);
   } catch (e) {
     mic.classList.remove('rec');
-    $('chat-in').placeholder = '마이크를 쓸 수 없어요. 글자로 적어 주세요';
+    $('chat-in').placeholder = (e === 'no-speech' || e === 'aborted') ? '잘 안 들렸어요. 🎤를 다시 눌러 말해 보세요' : '마이크를 쓸 수 없어요. 글자로 적어 주세요';
   }
 });
 
