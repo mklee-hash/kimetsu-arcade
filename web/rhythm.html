@@ -106,6 +106,8 @@ p{margin:0}
 .song-title{font-size:36px;line-height:1.05;color:var(--paper)}
 .song-desc{font-size:14px;color:var(--paper-dim)}
 .song-best{font-size:14px;color:var(--paper);margin-top:4px}
+#sel-start{flex-direction:column;line-height:1.2}
+.sub2{display:block;font-size:13px;opacity:.85;margin-top:2px;font-weight:400}
 .tier{display:inline-block;vertical-align:middle;font-family:var(--body);font-size:13px;line-height:1;padding:5px 9px;border-radius:999px;background:var(--t);color:#07081a;font-weight:700;letter-spacing:0}
 .song-best b{color:var(--dawn);font-weight:400;font-family:var(--hanja);font-size:18px}
 .check{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px;color:var(--paper)}
@@ -478,10 +480,10 @@ const DIFF={easy:'노트 적게',normal:'노트 보통',hard:'노트 많이'};
 const TIERS=[[95,'쉬움','#5ed27a'],[128,'보통','#4fb3ff'],[160,'어려움','#ff7a2f'],[999,'매우 어려움','#d8343f']];
 const tierOf=song=>TIERS.find(t=>song.bpm<=t[0]);
 const DIFF_KEYS=['easy','normal','hard'];
-const JW={perfect:.045,good:.09,ok:.135};
+const JW={perfect:.06,good:.115,ok:.175};   // generous windows (kids play on phones with touch lag)
 const JTXT={perfect:'완벽',good:'좋음',ok:'아쉬움',miss:'놓침'};
 const JCOL={perfect:COL.dawn,good:'#c9b6f2',ok:COL.paperDim,miss:COL.blood};
-const ACCW={perfect:1,good:.66,ok:.33,miss:0};
+const ACCW={perfect:1,good:.75,ok:.45,miss:0};
 const RANKS=[[99.5,'柱','주'],[98,'甲','갑'],[95,'乙','을'],[92,'丙','병'],[88,'丁','정'],[84,'戊','무'],[80,'己','기'],[74,'庚','경'],[66,'辛','신'],[55,'壬','임'],[-1,'癸','계']];
 function rankOf(acc){for(const r of RANKS)if(acc>=r[0])return r;return RANKS[RANKS.length-1];}
 function rankByChar(c){return RANKS.find(r=>r[1]===c)||RANKS[RANKS.length-1];}
@@ -1307,7 +1309,7 @@ function startGame(songIdx,diff){
     bus:newBus(),songT0:actx.currentTime+3.6,approach:2.0-(settings.speed-1)*.15,
     nextIdx:0,drawIdx:0,gtNow:-9,score:0,combo:0,maxCombo:0,counts:{perfect:0,good:0,ok:0,miss:0},
     unitsTotal:units,unitsJudged:0,accSum:0,hp:100,demonMax:Math.max(10,units*.92),demonHP:Math.max(10,units*.92),
-    missDmg:{easy:5,normal:7,hard:9}[diff]*pk.missDamageMul,noFail:settings.noFail,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
+    missDmg:{easy:2.5,normal:4,hard:6}[diff]*pk.missDamageMul,noFail:settings.noFail,phase:'play',phaseT:0,paused:false,pauseGt:0,resumeTo:null,
     perf:performer(song),lastNoteT:lastT,lastBeat:-99,specials:0,failed:false,victory:false,finSlash:false,lastSlashFx:-9,holdSpark:0};
   resetScene();jd=null;comboPop=0;flashA=0;hurtV=0;shakeA=0;
   for(const s of laneSrc)s.clear();
@@ -1370,7 +1372,7 @@ function judge(kind,n,delta,isTail){
   }
   P.combo++;if(P.combo>P.maxCombo)P.maxCombo=P.combo;comboPop=1;
   P.score+={perfect:300,good:200,ok:100}[kind]*(1+Math.min(P.combo,100)/200);
-  P.hp=Math.min(100,P.hp+(kind==='perfect'?1.2:kind==='good'?.6:0));
+  P.hp=Math.min(100,P.hp+(kind==='perfect'?2:kind==='good'?1.2:.5));
   P.demonHP=Math.max(0,P.demonHP-{perfect:1,good:.72,ok:.42}[kind]);
   hunterStrike(kind,n.lane,isTail);
   sfx(isTail?'hold':'hit',kind);
@@ -1815,7 +1817,7 @@ function renderSelect(){
   });
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed',t.dataset.diff===settings.diff?'true':'false'));
   $('#sel-nofail').checked=settings.noFail;
-  $('#sel-start').textContent='출격 · '+SONGS[settings.song].title+' ('+tierOf(SONGS[settings.song])[1]+')';
+  {const b=$('#sel-start');b.textContent='출격 · '+SONGS[settings.song].title;const sm=document.createElement('small');sm.className='sub2';sm.textContent='곡 '+tierOf(SONGS[settings.song])[1]+' · '+DIFF[settings.diff];b.appendChild(sm);}
 }
 function selectSong(i,focus){settings.song=i;settings.songId=SONGS[i].id;saveSettings();renderSelect();if(focus){const b=songList.querySelector('[data-i="'+i+'"]');if(b)b.focus({preventScroll:false});}}
 function selectDiff(d){settings.diff=d;saveSettings();renderSelect();sfx('ui');}
