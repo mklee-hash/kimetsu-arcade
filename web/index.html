@@ -141,6 +141,7 @@
   .game[data-c="thunder"] { --c: var(--thunder); }
   .game[data-c="beast"] { --c: var(--beast); }
   .game[data-c="wisteria"] { --c: var(--wisteria); }
+  .game[data-c="leaf"] { --c: #5ed27a; }
   .genre {
     font-size: 12px;
     letter-spacing: 0.14em;
@@ -430,7 +431,7 @@
   <header>
     <p class="eyebrow">다이쇼 시대 · 달 밝은 밤</p>
     <h1>귀살 아케이드</h1>
-    <p class="lede">해가 뜨기 전까지 혈귀를 베는 네 가지 게임입니다. 호흡을 골라 싸우고, 기록에 따라 癸부터 甲, 그리고 최고위 柱(주)까지 계급을 받습니다. PC와 휴대폰 모두 설치 없이 바로 플레이할 수 있습니다.</p>
+    <p class="lede">해가 뜨기 전까지 혈귀를 베는 네 가지 게임과, 대원들의 대사로 일본어를 배우는 수련장이 있습니다. 호흡을 골라 싸우고, 기록에 따라 癸부터 甲, 그리고 최고위 柱(주)까지 계급을 받습니다. PC와 휴대폰 모두 설치 없이 바로 플레이할 수 있습니다.</p>
   </header>
 
   <section class="players" id="profiles" aria-labelledby="players-title">
@@ -507,6 +508,17 @@
         <div class="meta"><span>조작 <b>터치 · 키보드</b></span><span>노래 <b>3곡</b></span><span>어린이 <b>추천</b></span></div>
         <span class="seal" aria-hidden="true">鼓</span>
         <span class="play">출진하기</span>
+      </a>
+    </li>
+    <li>
+      <a class="game" href="nihongo.html" data-c="leaf">
+        <canvas class="art" data-art="nihongo" aria-hidden="true"></canvas>
+        <span class="genre">일본어 배우기</span>
+        <h2>말의 호흡</h2>
+        <p>대원들의 대사로 일본어를 배워요. 뜻과 한글 발음이 함께 나오고, 듣고 고르고 따라 말하고, 대원과 대화도 해요. 장을 깰 때마다 보물을 받아요!</p>
+        <div class="meta"><span>단어·대사 <b>200개+</b></span><span>수련 <b>18장</b></span><span>마이크 <b>있으면 좋아요</b></span></div>
+        <span class="seal" aria-hidden="true">語</span>
+        <span class="play">수련하기</span>
       </a>
     </li>
   </ul>
@@ -1254,7 +1266,31 @@
     g.fillText('둥!', xs[2] + bw * 0.1, b3.topY - bw * 0.35); g.restore();
   }
 
-  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole };
+  function drawNihongo(g, W, H) {
+    sky(g, W, H, ['#0e1a2e', '#18304a', '#1f4a3a']);
+    stars(g, W, H, 77, Math.round(W * H / 1500), 0.35);
+    const bubble = (x, y, w, h, tail, jp, pr) => {
+      g.save(); g.fillStyle = '#fbf6ea'; g.strokeStyle = '#1a1420'; g.lineWidth = 2;
+      g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - h / 2, w, h, h * 0.3) : g.rect(x - w / 2, y - h / 2, w, h);
+      g.moveTo(x + tail * w * 0.2, y + h / 2 - 1); g.lineTo(x + tail * w * 0.32, y + h / 2 + h * 0.35); g.lineTo(x + tail * w * 0.05, y + h / 2 - 1);
+      g.fill(); g.stroke();
+      g.fillStyle = '#1a1420'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '700 ' + Math.round(h * 0.4) + 'px "Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",sans-serif';
+      g.fillText(jp, x, y - h * 0.13);
+      g.fillStyle = '#b0560e'; g.font = Math.round(h * 0.24) + 'px "Gowun Dodum",sans-serif';
+      g.fillText(pr, x, y + h * 0.27); g.restore();
+    };
+    const s = Math.min(H * 0.62, W * 0.34), by = H - s * 0.36;
+    if (window.KChars) {
+      try { KChars.drawBust(g, 'tanjiro', W * 0.2, by, s, { expr: 'smile' }); } catch (e) { /* */ }
+      try { KChars.drawBust(g, 'mitsuri', W * 0.8, by, s, { expr: 'smile', flip: true }); } catch (e) { /* */ }
+    }
+    const bh = Math.max(34, H * 0.27), bw = Math.min(W * 0.4, bh * 3.6);
+    bubble(W * 0.4, H * 0.2, bw, bh, -1, 'ありがとう！', '아리가토- · 고마워');
+    bubble(W * 0.62, H * 0.52, bw * 0.9, bh, 1, 'かわいい！', '카와이이 · 귀여워');
+  }
+
+  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole, nihongo: drawNihongo };
   function render(cv) {
     const fn = SCENES[cv.dataset.art]; if (!fn) return;
     const W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
