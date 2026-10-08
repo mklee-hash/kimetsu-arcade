@@ -254,23 +254,28 @@ function say(t) { try { speechSynthesis.cancel(); const u = new SpeechSynthesisU
 /* ---------- screens ---------- */
 function go(n) { ['lobby', 'wait', 'battle', 'result'].forEach(x => $('scr-' + x).classList.toggle('active', x === n)); window.scrollTo(0, 0); }
 
-/* ---------- questions (identical on both phones: seeded) ---------- */
-function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function buildQuestions(seed, upto) {
-  const R = rng(seed), pool = [];
+/* ---------- questions: the host picks them (avoiding recent ones) and sends them to the guest ---------- */
+const RECENT_KEY = ROOT + 'battle:recent';   // shared by the whole family (synced)
+function buildQuestions(upto) {
+  const pool = [];
   CHS.slice(0, upto).forEach(c => {
     c.words.forEach(w => pool.push({ jp: w[0], kana: w[1], ko: w[2] }));
     c.lines.forEach(l => { if (l[0].split('/').length <= 3) pool.push({ jp: l[0].replace(/\//g, ''), kana: l[1], ko: l[2] }); });
   });
   pool.forEach(p => { p.pron = D.pron(p.kana); });
-  const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const order = shuf(pool.slice()), qs = [];
+  const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const recent = new Set(readJSON(RECENT_KEY, []));
+  let fresh = pool.filter(p => !recent.has(p.jp));
+  if (fresh.length < N_Q) fresh = pool;                       // everything seen lately: start over
+  const order = shuf(fresh.slice()), qs = [], types = shuf(['meaning', 'meaning', 'meaning', 'reverse', 'reverse', 'reverse', 'listen', 'listen', 'listen', 'listen']);
   for (let i = 0; i < N_Q && i < order.length; i++) {
-    const it = order[i], type = R() < 0.5 ? 'meaning' : 'reverse', field = type === 'meaning' ? 'ko' : 'jp';
+    const it = order[i], type = types[i % types.length], field = type === 'meaning' ? 'ko' : 'jp';
     const used = new Set([it[field]]), ds = [];
     for (const x of shuf(pool.slice())) { if (ds.length >= 3) break; if (!used.has(x[field])) { used.add(x[field]); ds.push(x); } }
     qs.push({ it, type, opts: shuf([it].concat(ds)) });
   }
+  const keep = qs.map(q => q.it.jp).concat(readJSON(RECENT_KEY, [])).slice(0, Math.max(40, Math.floor(pool.length * 0.7)));
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(keep)); } catch (e) { /* storage off */ }
   return qs;
 }
 
@@ -293,7 +298,7 @@ async function refreshRooms() {
   let lob = null;
   try { lob = await fsGet('lobby/' + fam); } catch (e) { $('rooms-empty').textContent = '서버에 연결할 수 없어요. 인터넷을 확인해 주세요.'; $('rooms-empty').hidden = false; return; }
   const box = $('rooms'); box.textContent = '';
-  const now = Date.now(), list = Object.keys(lob || {}).map(k => lob[k]).filter(r => r && r.rid && r.pid !== m.pid && now - r.t < 60000);
+  const now = Date.now(), list = Object.keys(lob || {}).map(k => lob[k]).filter(r => r && r.rid && r.pid !== m.pid && now - r.t < 60000 && (!r.game || r.game === 'quiz'));
   list.forEach(r => {
     const li = el('li', 'room'), im = el('img'); setFace(im, r.avatar, 48); im.alt = '';
     const t = el('div', 'grow'); t.append(el('b', null, r.name)); t.append(el('div', 'hint', '대결 상대를 기다리고 있어요!'));
@@ -328,13 +333,13 @@ function rid() { const a = 'abcdefghijkmnpqrstuvwxyz23456789'; let s = ''; for (
 async function createRoom() {
   const m = me(), fam = family(); if (!m || !fam) return;
   clearInterval(lobbyTimer);
-  const id = rid(), seed = Math.floor(Math.random() * 2e9);
+  const id = rid();
   const who = { pid: m.pid, name: m.name, avatar: m.avatar, cleared: m.cleared };
   try {
-    await fsSet('rooms/' + id, { meta: { seed, n: N_Q, host: who, created: Date.now() }, hs: { a: [], t: Date.now() } });
-    await fsSet('lobby/' + fam, { ['r_' + m.pid]: { rid: id, pid: m.pid, name: m.name, avatar: m.avatar, t: Date.now() } });
+    await fsSet('rooms/' + id, { meta: { game: 'quiz', n: N_Q, host: who, created: Date.now() }, hs: { a: [], t: Date.now() } });
+    await fsSet('lobby/' + fam, { ['r_' + m.pid]: { rid: id, pid: m.pid, name: m.name, avatar: m.avatar, t: Date.now(), game: 'quiz' } });
   } catch (e) { alert('방을 만들 수 없어요: ' + e.message); openLobby(); return; }
-  G = { id, host: true, mine: 'hs', theirs: 'gs', seed, me: who, closed: false };
+  G = { id, host: true, mine: 'hs', theirs: 'gs', me: who, closed: false };
   setFace($('wait-face'), m.avatar, 140);
   go('wait');
   let beat = 0;
@@ -345,10 +350,13 @@ async function createRoom() {
     if (room && room.gs && room.gs.who) {
       G.opp = room.gs.who;
       try { await fsSet('lobby/' + fam, { ['r_' + m.pid]: null }); } catch (e) { /* stale entry expires */ }
+      const upto = Math.min(CHS.length, Math.max(6, Math.min(who.cleared || 0, G.opp.cleared || 0) + 3));
+      G.qs = buildQuestions(upto);
+      try { await fsSet('rooms/' + id, { meta: Object.assign({}, room.meta, { qs: G.qs }) }); } catch (e) { alert('문제를 보내지 못했어요. 다시 해 주세요.'); cancelRoom(); return; }
       startMatch();
       return;
     }
-    if (++beat % 10 === 0) { try { await fsSet('lobby/' + fam, { ['r_' + m.pid]: { rid: id, pid: m.pid, name: m.name, avatar: m.avatar, t: Date.now() } }); } catch (e) { /* retry later */ } }
+    if (++beat % 10 === 0) { try { await fsSet('lobby/' + fam, { ['r_' + m.pid]: { rid: id, pid: m.pid, name: m.name, avatar: m.avatar, t: Date.now(), game: 'quiz' } }); } catch (e) { /* retry later */ } }
   }
 }
 async function cancelRoom() {
@@ -364,7 +372,12 @@ async function joinRoom(entry) {
   if (!room || !room.meta || (room.gs && room.gs.who)) { alert('이미 시작했거나 없어진 방이에요.'); openLobby(); return; }
   const who = { pid: m.pid, name: m.name, avatar: m.avatar, cleared: m.cleared };
   try { await fsSet('rooms/' + entry.rid, { gs: { who, a: [], t: Date.now() } }); } catch (e) { alert('들어갈 수 없어요: ' + e.message); openLobby(); return; }
-  G = { id: entry.rid, host: false, mine: 'gs', theirs: 'hs', seed: room.meta.seed, me: who, opp: room.meta.host, closed: false };
+  G = { id: entry.rid, host: false, mine: 'gs', theirs: 'hs', me: who, opp: room.meta.host, closed: false };
+  for (let k = 0; k < 40 && !G.qs; k++) {            // wait for the host to send today's questions
+    await wait(600);
+    try { const r = await fsGet('rooms/' + entry.rid); if (r && r.meta && r.meta.qs) G.qs = r.meta.qs; } catch (e) { /* retry */ }
+  }
+  if (!G.qs) { alert('상대와 연결이 끊겼어요.'); G = null; openLobby(); return; }
   startMatch();
 }
 
@@ -401,8 +414,6 @@ async function waitOpponent(i) {
   }
 }
 async function startMatch() {
-  const upto = Math.max(3, Math.min(G.me.cleared || 0, (G.opp && G.opp.cleared) || 0));
-  G.qs = buildQuestions(G.seed, Math.min(CHS.length, upto));
   G.answers = []; G.hp = { me: MAX_HP, opp: MAX_HP }; G.seenLocal = Date.now();
   fighter('f-me', G.me, MAX_HP); fighter('f-opp', G.opp, MAX_HP);
   $('q').textContent = ''; $('opts').textContent = ''; $('status').textContent = '';
@@ -424,18 +435,23 @@ async function startMatch() {
 function askQuestion(i) {
   return new Promise(resolve => {
     const q = G.qs[i], it = q.it, box = $('q'), opts = $('opts');
+    window.__battleQ = q;   // read by the automated test
     $('round').textContent = (i + 1) + ' / ' + G.qs.length + ' 번째 문제';
     $('status').textContent = '';
     box.textContent = ''; opts.textContent = '';
     if (q.type === 'meaning') { box.append(el('div', 'ask', '무슨 뜻일까요?'), el('div', 'big', it.jp), el('div', 'pr', '발음 ' + it.pron)); say(it.jp); }
+    else if (q.type === 'listen') {
+      const lb = el('button', 'btn small', '🔊 다시 듣기'); lb.type = 'button'; lb.addEventListener('click', () => say(it.jp));
+      box.append(el('div', 'ask', '잘 듣고 들린 말을 골라요!'), el('div', 'ko', '👂'), lb); say(it.jp);
+    }
     else box.append(el('div', 'ask', '일본어로 뭐라고 할까요?'), el('div', 'ko', it.ko));
     const t0 = performance.now(); let done = false;
     const bar = $('timer');
     const tick = () => { if (done) return; const f = 1 - (performance.now() - t0) / Q_TIME; bar.style.width = Math.max(0, f * 100) + '%'; if (f <= 0) end(null); else requestAnimationFrame(tick); };
     function end(pick, btn) {
       if (done) return; done = true;
-      const ms = Math.round(performance.now() - t0), ok = !!pick && pick === it;
-      opts.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b._it === it) b.classList.add('ok'); });
+      const ms = Math.round(performance.now() - t0), ok = !!pick && pick.jp === it.jp;
+      opts.querySelectorAll('.opt').forEach(b => { b.disabled = true; if (b._it.jp === it.jp) b.classList.add('ok'); });
       if (btn) btn.classList.add(ok ? 'pick' : 'no');
       if (ok) sfx.ok(); else sfx.no();
       resolve({ ok, ms: Math.min(ms, Q_TIME) });

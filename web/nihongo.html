@@ -999,8 +999,8 @@ function bubbleBody(r, opts) {
   const jpText = r.jp.replace(/\//g, '');
   if (r.jp) b.appendChild(el('div', 'b-jp', jpText));
   const pr = r.namePre ? r.namePre + D.pron(r.kana) : (r.kana ? D.pron(r.kana.replace(/(こんにち|こんばん)は/g, '$1わ')) : '');
-  if (pr && hasJp(r.kana)) b.appendChild(el('div', 'b-pr', '발음 ' + pr));
-  if (r.ko) b.appendChild(el('div', 'b-ko', (r.jp ? '뜻 ' : '') + r.ko));
+  if (pr && hasJp(r.kana)) b.appendChild(el('div', 'b-pr', pr));
+  if (r.ko) b.appendChild(el('div', 'b-ko', r.ko));
   if (opts && opts.note) b.appendChild(el('div', 'b-note', opts.note));
   if (hasJpAny(jpText)) { const s = el('button', 'say', '🔊 다시 듣기'); s.type = 'button'; s.addEventListener('click', () => say(jpText)); b.appendChild(s); }
   return b;
