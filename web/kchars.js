@@ -14,6 +14,7 @@
  *       { id:'shinobu', name:'코쵸우 시노부',   style:'insect',  color:'#b58cff', title:'벌레의 호흡' }
  *       + the other hashira (주): giyu (water2), tengen (sound), mitsuri (love), muichiro (mist),
  *         gyomei (stone), obanai (serpent), sanemi (wind)
+ *       + kanao (flower)
  *     Iterate this list to offer every character (new entries are only ever appended).
  *
  *   KChars.byStyle(style)          -> entry for 'water'|'flame'|'thunder'|'beast'|'blood'|'insect' (or null)
@@ -781,9 +782,10 @@
   };
 
   // ---------------- SHINOBU ----------------
-  function butterfly(ctx, x, y, rot, sc) {
+  function butterfly(ctx, x, y, rot, sc, pink) {
     ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); ctx.scale(sc || 1, sc || 1);
-    var gw = grad('shinFly', function () { return rg(0, 0, 0.05, 0, 0, 0.66, [[0, '#ffe0f4'], [0.35, '#f0a8ea'], [0.7, '#b07cff'], [1, '#6a34c0']]); });
+    var gw = pink ? grad('kanFly', function () { return rg(0, 0, 0.05, 0, 0, 0.66, [[0, '#fff0f6'], [0.35, '#ffc2dc'], [0.7, '#ff7fb0'], [1, '#c8407a']]); })
+      : grad('shinFly', function () { return rg(0, 0, 0.05, 0, 0, 0.66, [[0, '#ffe0f4'], [0.35, '#f0a8ea'], [0.7, '#b07cff'], [1, '#6a34c0']]); });
     for (var s = -1; s <= 1; s += 2) {
       // forewing: broad, pointed outer corner
       ctx.beginPath(); ctx.moveTo(s * 0.03, -0.02);
@@ -1133,8 +1135,38 @@
     blade: 'plain', bladeCol: '#4ec870', guard: '#2a2a36', hilt: '#2a3a2a', trailMix: 0.35
   };
 
+
+  // ---------------- KANAO (꽃) ----------------
+  C.kanao = {
+    id: 'kanao', name: '츠유리 카나오', style: 'flower', color: '#ff9ec4', title: '꽃의 호흡',
+    gradBack: function () { return lg(0, -1.5, 0, 0.8, [[0, '#120d16'], [0.65, '#1e1424'], [1, '#3a2240']]); },
+    gradFront: function () { return lg(0, -1.3, 0, 0.6, [[0, '#120d16'], [0.7, '#20162a'], [1, '#402648']]); },
+    pathBack: roundBack,
+    pathFront: bangs([1.08, -0.1, 1.02, 0.6, 0.86, -0.18, 0.68, -0.06, 0.5, -0.3, 0.3, -0.1, 0.12, -0.34, -0.06, -0.1,
+      -0.24, -0.34, -0.44, -0.1, -0.64, -0.28, -0.86, -0.16, -1.02, 0.6, -1.08, -0.1], 0.05),
+    hairBack: function (ctx, t) {
+      SWAY = Math.sin((t || 0) * 2.4) * 0.035;
+      // side ponytail falling over her left shoulder
+      curvy(ctx, [0.7, -0.75, 1.15, -0.55, 1.35, 0.1, 1.42, 0.8, 1.3, 1.45, 1.1, 1.1, 1.08, 1.55, 0.92, 0.9, 0.95, 0.2, 0.8, -0.3], 0.07);
+      fs(ctx, grad('kanTail', function () { return lg(0, -0.8, 0, 1.5, [[0, '#120d16'], [1, '#3a2240']]); }), 1);
+    },
+    hairDetail: function (ctx) {
+      ctx.beginPath(); ctx.moveTo(-0.55, -1.02); ctx.quadraticCurveTo(-0.2, -1.22, 0.3, -1.16);
+      ctx.lineWidth = LW * 2.2; ctx.strokeStyle = 'rgba(220,170,255,0.22)'; ctx.stroke();
+    },
+    overBack: function (ctx) { butterfly(ctx, 0.75, -0.75, 0.4, 0.9, true); },
+    overHead: function (ctx) { butterfly(ctx, 0.95, -0.82, 0.45, 0.95, true); },
+    irisGrad: irisLG('#5a2a6a', '#c48ae0', '#f6e4ff'),
+    irisLine: '#4a2058', pupilCol: '#7a4a8a', pupil: 0.18, eyeHi: 'rgba(255,255,255,0.55)',
+    brow: browThin('#1e1424'),
+    mouth: 'soft', blush: true,
+    haori: patPlain('#f7f5f2'),
+    sleeve: '#f7f5f2',
+    blade: 'plain', bladeCol: '#f0b8d8', guard: '#e06aa8', hilt: '#3a2240', trailMix: 0.25
+  };
+
   var LIST = [C.tanjiro, C.zenitsu, C.rengoku, C.inosuke, C.nezuko, C.shinobu,
-    C.giyu, C.tengen, C.mitsuri, C.muichiro, C.gyomei, C.obanai, C.sanemi].map(function (c) {
+    C.giyu, C.tengen, C.mitsuri, C.muichiro, C.gyomei, C.obanai, C.sanemi, C.kanao].map(function (c) {
     return { id: c.id, name: c.name, style: c.style, color: c.color, title: c.title };
   });
 

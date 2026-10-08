@@ -221,6 +221,7 @@ a.arcade-back:hover{background:#ffc766}
         <h1 class="title brush" id="home-title">말의 <b>호흡</b></h1>
       </div>
     </div>
+    <p class="hint" style="font-size:15px;color:var(--paper)">대원들의 대사로 일본어를 배워요. 뜻과 한글 발음이 함께 나오고, 듣고 고르고 따라 말하고, 대원과 대화도 해요. 장을 깰 때마다 보물을 받아요!</p>
     <div class="panel">
       <div class="lvline"><span id="home-who">대원</span><span>Lv.<b id="home-lv">1</b></span></div>
       <div class="xpbar" aria-hidden="true"><i id="home-xp"></i></div>
@@ -335,7 +336,7 @@ const rnd = n => Math.floor(Math.random() * n);
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const pick = a => a[rnd(a.length)];
 const NAME = { tanjiro: '탄지로', zenitsu: '젠이츠', rengoku: '렌고쿠', inosuke: '이노스케', nezuko: '네즈코', shinobu: '시노부',
-  giyu: '기유', tengen: '텐겐', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', obanai: '오바나이', sanemi: '사네미' };
+  giyu: '기유', tengen: '텐겐', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', obanai: '오바나이', sanemi: '사네미', kanao: '카나오' };
 const HASHIRA = ['rengoku', 'shinobu', 'giyu', 'tengen', 'mitsuri', 'muichiro', 'gyomei', 'obanai', 'sanemi'];
 const faceCache = {};
 function face(id, px, expr) {
@@ -899,6 +900,8 @@ const PERSONA = {
     fav: R('鏑丸が/友達だ。', 'かぶらまるが/ともだちだ。', '카부라마루가 내 친구야.'), age: R('二十一歳だ。', 'にじゅーいっさいだ。', '스물한 살이다.'), catch: R('しっかり/しろ。', 'しっかり/しろ。', '정신 차려.') },
   sanemi: { self: R('不死川実弥だ！', 'しなずがわさねみだ！', '시나즈가와 사네미다!'), breath: R('風の/呼吸！', 'かぜの/こきゅー！', '바람의 호흡!'),
     fav: R('おはぎが/好きだ。', 'おはぎが/すきだ。', '오하기(팥떡)를 좋아해.'), age: R('二十一歳だ。', 'にじゅーいっさいだ。', '스물한 살이다.'), catch: R('行くぞ！', 'いくぞ！', '간다!') },
+  kanao: { self: R('栗花落カナヲ/です。', 'つゆりかなお/です。', '츠유리 카나오예요.'), breath: R('花の/呼吸。', 'はなの/こきゅー。', '꽃의 호흡.'),
+    fav: R('蝶々が/好き。', 'ちょーちょーが/すき。', '나비를 좋아해요.'), age: R('十六歳/です。', 'じゅーろくさい/です。', '열여섯 살이에요.'), catch: R('表…/裏…', 'おもて…/うら…', '앞면… 뒷면… (동전 던지기)') },
   gyomei: { self: R('悲鳴嶼行冥だ。', 'ひめじまぎょーめいだ。', '히메지마 교메이다.'), breath: R('岩の/呼吸。', 'いわの/こきゅー。', '바위의 호흡.'),
     fav: R('炊き込みご飯が/好きだ。', 'たきこみごはんが/すきだ。', '영양밥을 좋아한다.'), age: R('二十七歳だ。', 'にじゅーななさいだ。', '스물일곱 살이다.'), catch: R('南無…', 'なむ…', '나무… (기도하는 말)') }
 };

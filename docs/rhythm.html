@@ -106,6 +106,7 @@ p{margin:0}
 .song-title{font-size:36px;line-height:1.05;color:var(--paper)}
 .song-desc{font-size:14px;color:var(--paper-dim)}
 .song-best{font-size:14px;color:var(--paper);margin-top:4px}
+.tier{display:inline-block;vertical-align:middle;font-family:var(--body);font-size:13px;line-height:1;padding:5px 9px;border-radius:999px;background:var(--t);color:#07081a;font-weight:700;letter-spacing:0}
 .song-best b{color:var(--dawn);font-weight:400;font-family:var(--hanja);font-size:18px}
 .check{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:15px;color:var(--paper)}
 .check input{appearance:none;width:22px;height:22px;margin:0;flex:none;background:rgba(7,8,26,.8);box-shadow:inset 0 0 0 2px var(--paper-dim);clip-path:var(--cut-s);cursor:pointer;display:grid;place-items:center}
@@ -224,9 +225,9 @@ a.arcade-exit{text-decoration:none!important;justify-content:center;text-align:c
   <div class="wrap">
     <div class="bar"><button class="btn small" id="sel-back">← 처음으로</button><h2 class="brush">곡 선택</h2></div>
     <div class="tabs" role="group" aria-label="난이도">
-      <button class="tab" data-diff="easy" aria-pressed="false">쉬움</button>
-      <button class="tab" data-diff="normal" aria-pressed="false">보통</button>
-      <button class="tab" data-diff="hard" aria-pressed="false">어려움</button>
+      <button class="tab" data-diff="easy" aria-pressed="false">노트 적게</button>
+      <button class="tab" data-diff="normal" aria-pressed="false">노트 보통</button>
+      <button class="tab" data-diff="hard" aria-pressed="false">노트 많이</button>
     </div>
     <div class="songs" id="song-list" role="group" aria-label="곡 목록"></div>
     <div class="perk-box" id="sel-perks" hidden><h3>내 계급 능력</h3><ul id="sel-perk-list"></ul><p class="perk-next" id="sel-perk-next"></p></div>
@@ -340,18 +341,20 @@ const fmtNum=n=>Math.round(n).toLocaleString('ko-KR');
 const fmtTime=s=>{s=Math.round(s);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
 const rand=(a,b)=>a+Math.random()*(b-a);
 
-const DEF_SETTINGS={musicVol:.8,sfxVol:.55,muted:false,speed:5,offset:0,noFail:false,diff:'normal',song:0};
+const DEF_SETTINGS={musicVol:.8,sfxVol:.55,muted:false,speed:5,offset:0,noFail:false,diff:'normal',song:0,songId:''};
 const settings=Object.assign({},DEF_SETTINGS);
 function loadSettings(){
   Object.assign(settings,DEF_SETTINGS);
   const s=lsGet('rhythm:settings',{});
   if(s&&typeof s==='object'){
     const num=(k,a,b)=>{if(Number.isFinite(+s[k]))settings[k]=clamp(+s[k],a,b);};
-    num('musicVol',0,1);num('sfxVol',0,1);num('speed',1,10);num('offset',-150,150);num('song',0,2);
+    num('musicVol',0,1);num('sfxVol',0,1);num('speed',1,10);num('offset',-150,150);num('song',0,99);
     if(typeof s.muted==='boolean')settings.muted=s.muted;
     if(typeof s.noFail==='boolean')settings.noFail=s.noFail;
     if(['easy','normal','hard'].includes(s.diff))settings.diff=s.diff;
     settings.song=Math.round(settings.song);
+    if(typeof s.songId==='string')settings.songId=s.songId;
+    else settings.songId=['water','flame','thunder'][settings.song]||'';   // saved before ids were remembered
   }
 }
 loadSettings();
@@ -378,6 +381,7 @@ try{coarse=matchMedia('(pointer: coarse)').matches;}catch(e){}
 const COL={paper:'#efe6d2',paperDim:'#b9b2a3',blood:'#d8343f',wisteria:'#a58bdc',dawn:'#f2b24a',ink:'#07081a',night:'#0b0e22'};
 const STYLE={
   water:{color:'#4fb3ff',name:'물의 호흡',moves:['잔물결 베기','소용돌이 가르기','폭포 떨구기','흐르는 달','깊은 못 가르기','고요한 수면']},
+  flower:{color:'#ff9ec4',name:'꽃의 호흡',moves:['매화 꽃잎','작은 꽃 베기','모란 휘감기','복숭아꽃','피안 주안','꽃잎 회오리']},
   flame:{color:'#ff7a2f',name:'화염의 호흡',moves:['불씨 일섬','해돋이 불꽃','화륜 베기','불기둥 솟구침','노을 태우기','타오르는 심장']},
   thunder:{color:'#ffe14d',name:'번개의 호흡',moves:['섬광 일도','번개 사슬','뇌명 질주','천둥 가르기','벽력 난무','하늘 찢기']},
   blood:{color:'#ff7fb0',name:'혈귀술',moves:['분홍 불꽃','폭혈','작은 발차기','등나무 꿈','대나무 휘두르기','오빠 지키기']},
@@ -398,14 +402,23 @@ const SONGS=[
   {id:'firefly',title:'반딧불 자장가',style:'blood',fx:'water',perf:'nezuko',bpm:76,root:53,scale:[0,2,4,7,9],seed:1301,pluck:'koto',fluteV:1,
    dens:{A:'low',B:'low',C:'mid'},prog:[0,3,0,4],demon:'졸린 혈귀',desc:'네즈코가 잠든 밤의 자장가. 가장 느리고 짧은 곡.',
    sections:[['intro',2],['A',8],['B',8],['outro',2]]},
+  {id:'coin',title:'꽃잎과 동전',style:'flower',fx:'water',perf:'kanao',bpm:80,root:55,scale:[0,2,4,7,9],seed:1427,pluck:'koto',fluteV:.9,
+   dens:{A:'low',B:'low',C:'mid'},prog:[0,4,3,0],demon:'꽃잎 혈귀',desc:'앞면? 뒷면? 카나오의 동전 던지기 노래. 천천히, 또박또박.',
+   sections:[['intro',2],['A',8],['B',8],['A',4],['outro',2]]},
   {id:'butterfly',title:'나비의 산책',style:'insect',fx:'water',perf:'shinobu',bpm:88,root:57,scale:[0,2,4,7,9],seed:2207,pluck:'koto',fluteV:.95,
    dens:{A:'low',B:'mid',C:'mid'},prog:[0,4,3,0],demon:'꽃밭 혈귀',desc:'나비처럼 살랑살랑. 처음 하는 대원에게 딱!',
+   sections:[['intro',2],['A',8],['B',8],['A',4],['outro',2]]},
+  {id:'picnic',title:'주먹밥 소풍',style:'beast',fx:'flame',perf:'inosuke',bpm:90,root:53,scale:[0,2,4,7,9],seed:2531,pluck:'shamisen',fluteV:.7,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,3,4,0],demon:'도토리 혈귀',desc:'이노스케랑 소풍 가요! 쿵짝쿵짝 신나는 북소리.',
+   sections:[['intro',2],['A',8],['B',8],['C',4],['outro',2]]},
+  {id:'sparrow',title:'참새의 아침',style:'thunder',fx:'thunder',perf:'zenitsu',bpm:92,root:58,scale:[0,2,4,7,9],seed:2647,pluck:'koto',fluteV:.8,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,4,0,3],demon:'늦잠 혈귀',desc:'짹짹! 츄타로가 깨워 주는 아침. 졸린 젠이츠도 일어나요.',
    sections:[['intro',2],['A',8],['B',8],['A',4],['outro',2]]},
   {id:'water',title:'물결의 노래',style:'water',bpm:96,root:50,scale:[0,2,5,7,9],seed:9127,pluck:'koto',fluteV:.95,
    dens:{A:'mid',B:'mid',C:'high'},prog:[0,3,4,2],demon:'안개 혈귀',desc:'잔잔한 물결처럼 흐르는 곡. 긴 호흡이 많다.',
    sections:[['intro',4],['A',8],['B',8],['A',8],['bridge',4],['C',8],['outro',2]]},
-  {id:'mist',title:'안개 속 구름',style:'mist',fx:'water',perf:'muichiro',bpm:108,root:52,scale:[0,2,3,7,8],seed:3319,pluck:'koto',fluteV:.85,
-   dens:{A:'mid',B:'mid',C:'high'},prog:[0,3,2,4],demon:'안개 혈귀',desc:'뭐였더라…? 몽롱한 안개 속을 걷는 곡.',
+  {id:'mist',title:'안개 속 구름',style:'mist',fx:'flame',perf:'muichiro',bpm:108,root:57,scale:[0,2,3,7,8],seed:3319,pluck:'shamisen',fluteV:.55,
+   dens:{A:'low',B:'mid',C:'mid'},prog:[0,3,2,4],demon:'안개 혈귀',desc:'뭐였더라…? 몽롱한 안개 속을 걷는 곡.',
    sections:[['intro',4],['A',8],['B',8],['bridge',4],['C',8],['outro',2]]},
   {id:'stone',title:'바위의 기도',style:'stone',fx:'flame',perf:'gyomei',bpm:118,root:45,scale:[0,2,3,7,9],seed:4421,pluck:'shamisen',fluteV:.7,
    dens:{A:'mid',B:'high',C:'high'},prog:[0,0,3,4],demon:'바위 혈귀',desc:'묵직한 북소리가 바위처럼 쿵쿵. 힘 있게 쳐요.',
@@ -441,6 +454,8 @@ const SONGS=[
    dens:{A:'low',B:'low',C:'mid'},prog:[0,1,3,2],demon:'상현 육 혈귀',desc:'최고 속도 200 BPM. 번개보다 빠르게! 주(柱) 도전곡.',
    sections:[['intro',4],['A',8],['B',8],['C',8],['B',8],['C',8],['outro',4]]}
 ];
+function resolveSong(){const i=SONGS.findIndex(x=>x.id===settings.songId);settings.song=i>=0?i:Math.min(Math.max(0,settings.song),SONGS.length-1);}
+resolveSong();
 /* 곡마다 연주하는 대원 (kchars.js 공용 캐릭터). 라이브러리가 없으면 이름만 쓰고 기존 실루엣으로 그린다 */
 const PERF_FB={water:{id:'tanjiro',name:'카마도 탄지로',short:'탄지로'},flame:{id:'rengoku',name:'렌고쿠 쿄쥬로',short:'렌고쿠'},thunder:{id:'zenitsu',name:'아가츠마 젠이츠',short:'젠이츠'}};
 const KC=(window.KChars&&typeof window.KChars.drawFigure==='function')?window.KChars:null;
@@ -456,7 +471,10 @@ function bustURL(song,px,expr){
   if(!KC||typeof KC.bustDataURL!=='function')return '';
   try{return KC.bustDataURL(performer(song).id,Math.round(px),{expr:expr||'normal'})||'';}catch(e){return '';}
 }
-const DIFF={easy:'쉬움',normal:'보통',hard:'어려움'};
+const DIFF={easy:'노트 적게',normal:'노트 보통',hard:'노트 많이'};
+/* 곡 난이도 (빠르기 기준) */
+const TIERS=[[95,'쉬움','#5ed27a'],[128,'보통','#4fb3ff'],[160,'어려움','#ff7a2f'],[999,'매우 어려움','#d8343f']];
+const tierOf=song=>TIERS.find(t=>song.bpm<=t[0]);
 const DIFF_KEYS=['easy','normal','hard'];
 const JW={perfect:.045,good:.09,ok:.135};
 const JTXT={perfect:'완벽',good:'좋음',ok:'아쉬움',miss:'놓침'};
@@ -1782,7 +1800,7 @@ SONGS.forEach((s,i)=>{
   const pf=performer(s),bu=bustURL(s,112,'normal');
   b.innerHTML=(bu?'<img class="song-bust" src="'+bu+'" alt="'+pf.name+'" width="56" height="56">':'')+
     '<span class="song-meta"><span class="nw">'+pf.name+' ·</span> <span class="nw">'+STYLE[s.style].name+' · '+s.bpm+' BPM · '+fmtTime(comp.totalBeats*comp.spb)+'</span></span>'+
-    '<span class="song-title brush">'+s.title+'</span><span class="song-desc">'+s.desc+'</span><span class="song-best"></span>';
+    '<span class="song-title brush">'+s.title+' <span class="tier" style="--t:'+tierOf(s)[2]+'">'+tierOf(s)[1]+'</span></span><span class="song-desc">'+s.desc+'</span><span class="song-best"></span>';
   b.addEventListener('click',()=>{selectSong(i,false);sfx('ui');});
   b.addEventListener('dblclick',()=>startGame(settings.song,settings.diff));
   songList.appendChild(b);
@@ -1795,9 +1813,9 @@ function renderSelect(){
   });
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed',t.dataset.diff===settings.diff?'true':'false'));
   $('#sel-nofail').checked=settings.noFail;
-  $('#sel-start').textContent='출격 · '+SONGS[settings.song].title+' ('+DIFF[settings.diff]+')';
+  $('#sel-start').textContent='출격 · '+SONGS[settings.song].title+' (곡 '+tierOf(SONGS[settings.song])[1]+' · '+DIFF[settings.diff]+')';
 }
-function selectSong(i,focus){settings.song=i;saveSettings();renderSelect();if(focus){const b=songList.querySelector('[data-i="'+i+'"]');if(b)b.focus({preventScroll:false});}}
+function selectSong(i,focus){settings.song=i;settings.songId=SONGS[i].id;saveSettings();renderSelect();if(focus){const b=songList.querySelector('[data-i="'+i+'"]');if(b)b.focus({preventScroll:false});}}
 function selectDiff(d){settings.diff=d;saveSettings();renderSelect();sfx('ui');}
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>selectDiff(t.dataset.diff)));
 $('#sel-nofail').addEventListener('change',e=>{settings.noFail=e.target.checked;saveSettings();});
@@ -1912,7 +1930,7 @@ renderTitleBest();renderSelect();renderProfile();syncSettingsUI();updateMuteBtn(
 /* 뒤로 가기 캐시로 돌아왔을 때: 허브에서 대원이 바뀌었을 수 있으니 기록 · 설정을 다시 읽는다 */
 window.addEventListener('pageshow',e=>{
   if(!e.persisted||mode==='game')return;
-  loadSettings();loadBest();applyVolumes();
+  loadSettings();resolveSong();loadBest();applyVolumes();
   renderTitleBest();renderSelect();renderProfile();syncSettingsUI();updateMuteBtn();
 });
 if(document.fonts&&document.fonts.load){document.fonts.load('40px "Nanum Brush Script"').catch(()=>{});}

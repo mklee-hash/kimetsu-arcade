@@ -98,7 +98,7 @@
     padding: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+    gap: 14px;
   }
   @media (max-width: 680px) { .games { grid-template-columns: 1fr; } }
 
@@ -107,10 +107,10 @@
     --c: var(--water);
     position: relative;
     display: grid;
-    --art-h: 150px;
-    grid-template-rows: auto auto auto 1fr auto;
-    gap: 6px;
-    padding: 22px 22px 20px;
+    --art-h: 112px;
+    grid-template-rows: auto auto auto 1fr;
+    gap: 4px;
+    padding: 16px 18px 14px;
     color: var(--ink);
     text-decoration: none;
     background:
@@ -127,7 +127,7 @@
     margin-bottom: 8px;
     pointer-events: none;
   }
-  @media (max-width: 460px) { .game { --art-h: 136px; } }
+  @media (max-width: 460px) { .game { --art-h: 100px; } }
   .game::before {
     content: "";
     position: absolute;
@@ -151,18 +151,19 @@
     margin: 0;
     font-family: var(--display);
     font-weight: 400;
-    font-size: 46px;
+    font-size: 38px;
     line-height: 1;
     color: #1a1420;
     text-wrap: balance;
   }
-  .game p { margin: 4px 0 0; color: #3b3040; }
+  .game p { display: none; }   /* the long description now lives on each game's own first screen */
   .meta {
     display: flex;
     flex-wrap: wrap;
     gap: 6px 14px;
-    margin-top: 14px;
-    padding-top: 12px;
+    margin-top: 6px;
+    padding-top: 8px;
+    padding-right: 96px;
     border-top: 1px dashed rgba(59, 48, 64, 0.3);
     font-size: 13px;
     color: #5a4c5e;
@@ -171,7 +172,7 @@
   .seal {
     position: absolute;
     right: 18px;
-    top: calc(22px + var(--art-h) + 14px);
+    top: calc(16px + var(--art-h) + 10px);
     width: 44px;
     height: 44px;
     display: grid;
@@ -186,9 +187,9 @@
     opacity: 0.85;
   }
   .play {
-    display: inline-block;
-    margin-top: 16px;
-    justify-self: start;
+    position: absolute;
+    right: 16px;
+    bottom: 14px;
     padding: 9px 18px;
     background: var(--blood);
     color: var(--paper);
@@ -522,8 +523,8 @@
         <canvas class="art" data-art="rhythm" aria-hidden="true"></canvas>
         <span class="genre">리듬 액션</span>
         <h2>호흡의 박자</h2>
-        <p>북과 샤미센 박자에 맞춰 노트를 쳐서 혈귀를 벱니다. 76 BPM 자장가부터 200 BPM 신속 일섬까지 15곡!</p>
-        <div class="meta"><span>조작 <b>D F J K · 터치</b></span><span>곡 <b>15곡 × 3난이도</b></span><span>소리 <b>필요</b></span></div>
+        <p>북과 샤미센 박자에 맞춰 노트를 쳐서 혈귀를 벱니다. 76 BPM 자장가부터 200 BPM 신속 일섬까지 18곡!</p>
+        <div class="meta"><span>조작 <b>D F J K · 터치</b></span><span>곡 <b>18곡 × 노트 3단계</b></span><span>소리 <b>필요</b></span></div>
         <span class="seal" aria-hidden="true">拍</span>
         <span class="play">출진하기</span>
       </a>

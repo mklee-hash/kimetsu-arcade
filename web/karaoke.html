@@ -83,17 +83,26 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
 .opp img{width:30px;height:30px;border-radius:50%}
 .opp .ob{flex:1;height:8px;background:rgba(239,230,210,.12);border-radius:4px;overflow:hidden}
 .opp .ob i{display:block;height:100%;width:0;background:var(--blood);transition:width .8s}
-#lane{width:100%;height:150px;display:block;background:rgba(7,8,26,.7);clip-path:var(--cut)}
+#lane{width:100%;height:170px;display:block;background:rgba(7,8,26,.7);clip-path:var(--cut)}
 .lyrics{text-align:center;display:flex;flex-direction:column;gap:6px;min-height:170px;justify-content:center}
 .cur{font-family:var(--jp);font-weight:700;font-size:clamp(28px,8.6vw,42px);line-height:1.3;word-break:keep-all}
-.cur span{color:rgba(239,230,210,.45);transition:color .1s}
-.cur span.sung{color:var(--pink)}
-.cur span.now{color:#fff;text-shadow:0 0 14px var(--pink)}
+.cur{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 1px}
+.cur .sy{display:inline-flex;flex-direction:column;align-items:center;min-width:1.05em;color:rgba(239,230,210,.45);transition:color .1s}
+.cur .sy i{font-style:normal;font-family:var(--body);font-size:clamp(14px,4vw,18px);font-weight:700;color:rgba(242,178,74,.55);line-height:1.1}
+.cur .sy.gap{margin-left:.45em}
+.cur .sy.sung{color:var(--pink)} .cur .sy.sung i{color:var(--dawn)}
+.cur .sy.now{color:#fff;text-shadow:0 0 14px var(--pink)} .cur .sy.now i{color:#fff}
 .curp{font-size:clamp(19px,5.4vw,24px);color:var(--dawn);font-weight:700}
 .curk{font-size:17px}
 .nextl{font-size:14px;color:var(--paper-dim);font-family:var(--jp)}
 .mode{font-size:13px;color:var(--paper-dim);text-align:center}
 .mode b{color:var(--leaf)}
+.guidebox{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.guidebox .btn{flex:0 0 auto}
+.guidebox .btn.on{background:#1f7a4a;box-shadow:inset 0 0 0 2px #5ed27a;color:#fff}
+.guidebox .btn.off{background:#3a3a46;box-shadow:inset 0 0 0 1px rgba(239,230,210,.25);color:var(--paper-dim)}
+.guidebox label{flex:1 1 160px;display:flex;align-items:center;gap:8px;font-size:14px}
+.guidebox input{flex:1;accent-color:#5ed27a}
 .tap{width:100%;min-height:90px;font-size:26px;border-radius:14px;clip-path:none;background:var(--pink);color:#2a0a1a;font-weight:700}
 .fb{position:fixed;left:50%;top:22%;transform:translateX(-50%);font-size:30px;font-weight:700;pointer-events:none;text-shadow:0 2px 0 #000;animation:fb .6s ease-out both;z-index:9}
 @keyframes fb{from{opacity:1;transform:translate(-50%,0) scale(1.2)}to{opacity:0;transform:translate(-50%,-40px) scale(1)}}
@@ -133,6 +142,7 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
     </div>
     <div class="panel">
       <div class="me" id="me"></div>
+      <div class="guidebox"><span class="hint">🎹 가이드 멜로디 소리 크기</span><label><input type="range" id="guide-vol2" min="0" max="100" step="5" aria-label="가이드 멜로디 소리 크기"> <b id="guide-out2"></b></label></div>
       <p class="hint">일본어 가사를 보고 따라 불러요. 가사 아래 <b style="color:var(--dawn)">주황 글씨</b>가 한글 발음, 그 아래가 뜻이에요. 마이크가 음정을 듣고 점수를 매겨요. 🎧 이어폰을 끼면 더 정확해요!</p>
     </div>
     <div class="panel" id="inv-panel" hidden>
@@ -161,7 +171,10 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
     </div>
     <div class="mode" id="s-mode"></div>
     <button class="btn tap" id="tap" type="button" hidden>톡! 🎵</button>
-    <div class="btn-row"><button class="btn small" id="guide" type="button">🎹 가이드 멜로디 켜짐</button></div>
+    <div class="guidebox">
+      <button class="btn small on" id="guide" type="button" aria-pressed="true">🎹 가이드 켜짐</button>
+      <label>소리 크기 <input type="range" id="guide-vol" min="0" max="100" step="5" aria-label="가이드 멜로디 소리 크기"> <b id="guide-out"></b></label>
+    </div>
   </div>
 </section>
 
@@ -201,7 +214,7 @@ function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const ROOT = 'kimetsu-arcade:';
 const NAME = { tanjiro: '탄지로', zenitsu: '젠이츠', rengoku: '렌고쿠', inosuke: '이노스케', nezuko: '네즈코', shinobu: '시노부',
-  giyu: '기유', tengen: '텐겐', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', obanai: '오바나이', sanemi: '사네미' };
+  giyu: '기유', tengen: '텐겐', mitsuri: '미츠리', muichiro: '무이치로', gyomei: '교메이', obanai: '오바나이', sanemi: '사네미', kanao: '카나오' };
 const faceCache = {};
 function face(id, px, expr) {
   const k = id + px + (expr || ''); if (faceCache[k] != null) return faceCache[k];
@@ -283,10 +296,21 @@ function chordsFor(song) {
   }
   return out;
 }
-let guideOn = true, guideGain = null;
+const GUIDE_KEY = 'kimetsu-karaoke:guide';
+let guideOn = true, guideGain = null, guideLevel = 70;
+try { const g = JSON.parse(localStorage.getItem(GUIDE_KEY) || 'null'); if (g) { guideOn = g.on !== false; if (g.level >= 0 && g.level <= 100) guideLevel = g.level; } } catch (e) { /* defaults */ }
+const guideValue = () => guideOn ? Math.pow(guideLevel / 100, 1.4) * 2.2 : 0;   // up to ~6x the old level
+function saveGuide() { try { localStorage.setItem(GUIDE_KEY, JSON.stringify({ on: guideOn, level: guideLevel })); } catch (e) { /* */ } }
+function syncGuideUI() {
+  const b = $('guide'); b.textContent = guideOn ? '🎹 가이드 켜짐' : '🎹 가이드 꺼짐';
+  b.classList.toggle('on', guideOn); b.classList.toggle('off', !guideOn); b.setAttribute('aria-pressed', String(guideOn));
+  ['guide-vol', 'guide-vol2'].forEach(id => { $(id).value = guideLevel; });
+  ['guide-out', 'guide-out2'].forEach(id => { $(id).textContent = guideLevel + '%'; });
+  if (guideGain) guideGain.gain.value = guideValue();
+}
 function playSong(song, startAt) {
   const spb = 60 / song.bpm, t0 = startAt;
-  guideGain = AC.createGain(); guideGain.gain.value = guideOn ? 1 : 0; guideGain.connect(master);
+  guideGain = AC.createGain(); guideGain.gain.value = guideValue(); guideGain.connect(master);
   // count-in: 4 clicks
   for (let i = 4; i >= 1; i--) hit(t0 - i * spb, 1500, 900, 0.05, 0.25);
   const chords = chordsFor(song), nodes = [];
@@ -300,13 +324,14 @@ function playSong(song, startAt) {
       if (k % 2 === 0) hit(tk, 120, 45, 0.18, 0.35); else hit(tk, 0, 0, 0.12, 0.08, true);
     }
   });
-  song.notes.forEach(n => nodes.push(note(t0 + n.beat * spb, n.midi + 12, n.dur * spb * 0.92, 'triangle', 0.09, guideGain)));
+  song.notes.forEach(n => nodes.push(note(t0 + n.beat * spb, n.midi + 12, n.dur * spb * 0.92, 'square', 0.05, guideGain), note(t0 + n.beat * spb, n.midi + 12, n.dur * spb * 0.92, 'triangle', 0.12, guideGain)));
   return { t0, stop() { nodes.forEach(o => { try { o.stop(); } catch (e) { /* done */ } }); try { guideGain.gain.value = 0; } catch (e) { /* */ } } };
 }
 $('guide').addEventListener('click', () => {
-  guideOn = !guideOn; if (guideGain) guideGain.gain.value = guideOn ? 1 : 0;
-  $('guide').textContent = guideOn ? '🎹 가이드 멜로디 켜짐' : '🎹 가이드 멜로디 꺼짐';
+  guideOn = !guideOn; saveGuide(); syncGuideUI();
 });
+['guide-vol', 'guide-vol2'].forEach(id => $(id).addEventListener('input', e => { guideLevel = +e.target.value; if (guideLevel > 0) guideOn = true; saveGuide(); syncGuideUI(); }));
+syncGuideUI();
 
 /* ---------- microphone pitch ---------- */
 let MIC = null;
@@ -314,7 +339,8 @@ async function startMic() {
   if (MIC) return MIC;
   if (window.__KARAOKE_NOMIC) throw new Error('nomic');
   if (window.__KARAOKE_FAKE) { MIC = { fake: true, stream: { getTracks: () => [] } }; return MIC; }   // test hook
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+  // echoCancellation would switch many Android phones into 'call' mode (quiet / no music), so keep it off
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
   const src = AC.createMediaStreamSource(stream), an = AC.createAnalyser(); an.fftSize = 2048; src.connect(an);
   MIC = { stream, an, buf: new Float32Array(2048) };
   return MIC;
@@ -328,7 +354,7 @@ function detect() {
   let rms = 0;
   for (let i = 0; i < n; i++) { const v = (b[2 * i] + b[2 * i + 1]) * 0.5; x[i] = v; rms += v * v; }
   rms = Math.sqrt(rms / n);
-  if (rms < 0.012) return { rms, midi: null };
+  if (rms < voiceFloor) return { rms, midi: null };
   const minLag = Math.floor(sr / 1100), maxLag = Math.min(Math.floor(sr / 90), n >> 1), W = n - maxLag;
   const d = new Float32Array(maxLag + 1); let run = 0, best = -1;
   for (let tau = 1; tau <= maxLag; tau++) {
@@ -342,10 +368,40 @@ function detect() {
   const lag = best + (den ? (a - c) / (2 * den) : 0), f = sr / lag;
   return { rms, midi: 69 + 12 * Math.log2(f / 440) };
 }
+let voiceFloor = 0.012;
+// Measure how loud the speaker's guide melody is in the mic, so only a louder voice counts.
+async function calibrate() {
+  if (!MIC || MIC.fake || !guideOn || guideLevel === 0) { voiceFloor = 0.012; return; }
+  const g = AC.createGain(); g.gain.value = guideValue(); g.connect(master);
+  const t = AC.currentTime + 0.05;
+  [72, 76, 79].forEach((m, k) => { note(t + k * 0.22, m, 0.2, 'square', 0.05, g); note(t + k * 0.22, m, 0.2, 'triangle', 0.12, g); });
+  const vals = [], b = MIC.buf;
+  for (let i = 0; i < 12; i++) {
+    await wait(55);
+    MIC.an.getFloatTimeDomainData(b); let r = 0; for (let k = 0; k < b.length; k++) r += b[k] * b[k]; vals.push(Math.sqrt(r / b.length));
+  }
+  vals.sort((a, c) => a - c);
+  const leak = vals[Math.floor(vals.length * 0.75)];
+  voiceFloor = Math.max(0.012, Math.min(0.2, leak * 1.6));
+}
 const fold = (p, target) => p + 12 * Math.round((target - p) / 12);
 
 /* ---------- singing session ---------- */
 let SESSION = null;
+// Korean letters for each sung mora (uses the long-vowel spelling when given: ー → ~)
+function moraHangul(m) {
+  if (m === 'ん') return 'ㄴ';
+  if (m === 'っ') return 'ㅅ';
+  if (m === 'ー') return '~';
+  return D.pron(m) || m;
+}
+function hangulFor(song) {
+  song.lines.forEach(L => {
+    if (L.hg) return;
+    const pm = L.pk ? KSONGS_morae(L.pk) : null, src = pm && pm.length === L.syl.length ? pm : L.syl;
+    L.hg = src.map(moraHangul);
+  });
+}
 const W_GRADE = { perfect: 1, good: 0.75, ok: 0.4, miss: 0 };
 function laneCanvas() {
   const cv = $('lane'), dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
@@ -364,11 +420,17 @@ function sing(song, opts) {
     if (opts.opp) { const o = $('s-opp'); o.querySelector('img').src = face(opts.opp.avatar, 60); o.querySelector('.on').textContent = opts.opp.name; }
     go('sing');
     let mic = null;
-    try { mic = await startMic(); } catch (e) { mic = null; }
+    const timeout = (pr, ms) => Promise.race([pr, wait(ms).then(() => { throw new Error('timeout'); })]);
+    $('s-mode').textContent = '🎤 마이크를 준비하고 있어요… (허용을 눌러 주세요)';
+    try { mic = await timeout(startMic(), 25000); } catch (e) { mic = null; }
+    try { if (AC.state !== 'running') await timeout(AC.resume(), 1500); } catch (e) { /* keep going */ }
+    if (mic) { $('s-mode').textContent = '🎧 소리 확인 중…'; await calibrate(); }
     const tapMode = !mic;
     $('tap').hidden = !tapMode;
-    $('s-mode').innerHTML = tapMode ? '마이크를 쓸 수 없어서 <b>박자 모드</b>예요. 하얀 글자가 바뀔 때마다 「톡!」을 눌러요.' : '🎤 <b>마이크가 듣고 있어요</b> · 하얗게 빛나는 글자를 불러요';
-    const notes = song.notes.map(n => Object.assign({}, n, { frames: 0, voiced: 0, hits: 0, grade: null, tapped: false }));
+    const leakNote = !tapMode && voiceFloor > 0.02 ? ' · 스피커 소리는 빼고 목소리만 들어요' : '';
+    $('s-mode').innerHTML = tapMode ? '마이크를 쓸 수 없어서 <b>박자 모드</b>예요. 하얀 글자가 바뀔 때마다 「톡!」을 눌러요.' : '🎤 <b>마이크가 듣고 있어요</b> · 하얗게 빛나는 글자를 불러요' + leakNote;
+    hangulFor(song);
+    const notes = song.notes.map(n => Object.assign({}, n, { hg: song.lines[n.line].hg[n.idx], frames: 0, voiced: 0, hits: 0, grade: null, tapped: false }));
     const spb = 60 / song.bpm, trail = [];
     // count-down overlay, then music
     const cnt = $('count'); cnt.hidden = false;
@@ -418,8 +480,11 @@ function sing(song, opts) {
       notes.forEach(n => {
         const x = px + (n.beat - beat) * ppb, wd = Math.max(6, n.dur * ppb - 4); if (x > w || x + wd < 0) return;
         g.fillStyle = n.grade === 'perfect' ? '#ffe14d' : n.grade === 'good' ? '#5ed27a' : n.grade === 'ok' ? '#a58bdc' : n.grade === 'miss' ? 'rgba(216,52,63,.5)' : n === curNote ? '#ffffff' : 'rgba(255,143,200,.75)';
-        const y = ym(n.midi) - 6; g.beginPath(); if (g.roundRect) g.roundRect(x, y, wd, 12, 6); else g.rect(x, y, wd, 12); g.fill();
-        if (ppb * n.dur > 18) { g.fillStyle = 'rgba(7,8,26,.85)'; g.font = '700 10px sans-serif'; g.textBaseline = 'middle'; g.fillText(n.syl, x + 4, y + 6.5); }
+        const y = ym(n.midi) - 9; g.beginPath(); if (g.roundRect) g.roundRect(x, y, wd, 18, 8); else g.rect(x, y, wd, 18); g.fill();
+        g.fillStyle = 'rgba(7,8,26,.9)'; g.textBaseline = 'middle';
+        g.font = '700 12px "Zen Maru Gothic",sans-serif'; g.fillText(n.syl, x + 4, y + 9.5);
+        const kw = g.measureText(n.syl).width;
+        g.font = '700 11px "Gowun Dodum",sans-serif'; g.fillText(n.hg, x + 6 + kw, y + 9.5);
       });
       g.fillStyle = '#ffe14d';
       trail.forEach(p => { const x = px + (p.b - beat) * ppb; if (x < 0) return; g.globalAlpha = Math.max(0.15, 1 - (beat - p.b) / 3); g.beginPath(); g.arc(x, ym(p.m), 3.5, 0, 6.3); g.fill(); });
@@ -430,15 +495,19 @@ function sing(song, opts) {
       const L = song.lines[li], cur = $('l-cur');
       if (li !== lastLine) {
         lastLine = li; cur.textContent = '';
-        L.syl.forEach(s => cur.appendChild(el('span', null, s)));
-        $('l-pron').textContent = D.pron(L.pk || L.kana);
+        const words = L.kana.trim().split(/\s+/), firsts = new Set(); let k0 = 0;
+        words.forEach((w, wi) => { if (wi) firsts.add(k0); k0 += KSONGS_morae(w).length; });
+        L.syl.forEach((sy, k) => {
+          const sp = el('span', 'sy' + (firsts.has(k) ? ' gap' : '')); sp.append(sy); sp.appendChild(el('i', null, L.hg[k])); cur.appendChild(sp);
+        });
+        $('l-pron').textContent = '';
         $('l-ko').textContent = L.ko;
         const nx = song.lines[li + 1]; $('l-next').textContent = nx ? '다음: ' + nx.kana : '';
       }
       const spans = cur.children;
       for (let k = 0; k < L.syl.length; k++) {
         const n = notes[L.first + k];
-        spans[k].className = beat >= n.beat + n.dur ? 'sung' : beat >= n.beat ? 'now' : '';
+        spans[k].className = 'sy' + (spans[k].classList.contains('gap') ? ' gap' : '') + (beat >= n.beat + n.dur ? ' sung' : beat >= n.beat ? ' now' : '');
       }
     }
     let lastPush = 0;
@@ -497,6 +566,7 @@ function renderHome() {
     two.append(solo, bat);
     const det = el('details'), sum = el('summary', 'hint', '📖 가사 미리 보기'); det.appendChild(sum);
     const ly = el('div', 'lyr');
+    hangulFor(s);
     s.lines.forEach(L => { const d = el('div'); d.append(el('div', 'k', L.kana), el('div', 'p', D.pron(L.pk || L.kana)), el('div', null, L.ko)); ly.appendChild(d); });
     det.appendChild(ly);
     li.append(top, two, det); ul.appendChild(li);
