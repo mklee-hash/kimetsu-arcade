@@ -169,6 +169,7 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
   <div class="wrap">
     <div class="singtop">
       <button class="btn small" id="stop" type="button" aria-label="그만 부르기">✕</button>
+      <button class="btn small" id="pause" type="button" aria-label="멈춤">⏸ 멈춤</button>
       <div class="grow"><h2 id="s-title"></h2><div class="hint" id="s-who"></div></div>
       <div class="score" id="s-score">0<small>점</small></div>
     </div>
@@ -209,6 +210,16 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
 
 <div class="sheet" id="sheet" hidden><div class="panel" id="sheet-body"></div></div>
 <div class="count" id="count" hidden></div>
+<div class="sheet" id="pausebox" hidden style="align-items:center">
+  <div class="panel" style="text-align:center;align-items:center">
+    <h2 class="brush" style="font-size:48px;line-height:1">잠깐 멈춤 ⏸</h2>
+    <p class="hint">숨 고르고, 준비되면 멈춘 곳부터 이어서 불러요.</p>
+    <div class="btn-row" style="width:100%">
+      <button class="btn red" id="resume" type="button">▶ 계속 부르기</button>
+      <button class="btn" id="quit" type="button">그만하기</button>
+    </div>
+  </div>
+</div>
 
 <script src="kchars.js"></script>
 <script src="kprofile.js"></script>
@@ -452,6 +463,7 @@ function sing(song, opts) {
     const stopBtn = $('stop');
     const finish = aborted => {
       if (done) return; done = true; track.stop(); stopMic();
+      document.removeEventListener('visibilitychange', onHide); $('pausebox').hidden = true; pauseBtn.onclick = null;
       stopBtn.onclick = null; $('tap').onclick = null;
       notes.forEach(n => { if (!n.grade) judge(n); });
       const counts = { perfect: 0, good: 0, ok: 0, miss: 0 };
@@ -459,6 +471,30 @@ function sing(song, opts) {
       resolve(aborted ? null : { score: calcScore(true), counts, tapMode });
     };
     stopBtn.onclick = () => finish(true);
+    // ---- pause / resume: suspending the audio clock freezes the song, the lyrics and the scoring together ----
+    let paused = false;
+    const pauseBtn = $('pause');
+    pauseBtn.hidden = !!opts.opp;                      // online battle: the other singer can't wait
+    async function pause() {
+      if (done || paused || opts.opp) return;
+      paused = true; pauseBtn.disabled = true;
+      try { await AC.suspend(); } catch (e) { /* */ }
+      $('pausebox').hidden = false; $('resume').focus();
+    }
+    async function resume() {
+      if (!paused || done) return;
+      $('pausebox').hidden = true;
+      const cnt = $('count'); cnt.hidden = false;
+      for (const t of ['3', '2', '1']) { cnt.innerHTML = t + '<small>이어서 불러요</small>'; await wait(600); }
+      cnt.hidden = true;
+      try { await AC.resume(); } catch (e) { /* */ }
+      paused = false; pauseBtn.disabled = false;
+    }
+    pauseBtn.onclick = pause;
+    $('resume').onclick = resume;
+    $('quit').onclick = () => { $('pausebox').hidden = true; paused = false; try { AC.resume(); } catch (e) { /* */ } finish(true); };
+    const onHide = () => { if (document.visibilityState === 'hidden') pause(); };
+    document.addEventListener('visibilitychange', onHide);
     function judge(n) {
       if (tapMode) { n.grade = n.tapped || 'miss'; return; }
       const fr = Math.max(1, n.frames), h = n.hits / fr, v = n.voiced / fr;
@@ -528,7 +564,7 @@ function sing(song, opts) {
     let lastTick = 0;
     function frame() {
       lastTick = performance.now();
-      if (done) return;
+      if (done || paused) return;
       const beat = (AC.currentTime - startAt) / spb;
       let cur = null;
       for (const n of notes) { if (beat >= n.beat && beat < n.beat + n.dur) { cur = n; break; } }
