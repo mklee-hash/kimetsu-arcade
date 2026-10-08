@@ -462,7 +462,9 @@ const KC=(window.KChars&&typeof window.KChars.drawFigure==='function')?window.KC
 const perfCache={};
 function performer(song){
   const key=song.id;if(perfCache[key])return perfCache[key];
-  const f=PERF_FB[song.style]||{id:song.perf||'tanjiro',name:song.perf||'대원',short:song.perf||'대원'};let e=null;
+  const KO={tanjiro:'카마도 탄지로',zenitsu:'아가츠마 젠이츠',rengoku:'렌고쿠 쿄쥬로',inosuke:'하시비라 이노스케',nezuko:'카마도 네즈코',shinobu:'코쵸우 시노부',
+    giyu:'토미오카 기유',tengen:'우즈이 텐겐',mitsuri:'칸로지 미츠리',muichiro:'토키토 무이치로',gyomei:'히메지마 교메이',obanai:'이구로 오바나이',sanemi:'시나즈가와 사네미',kanao:'츠유리 카나오'};
+  const f=PERF_FB[song.style]||{id:song.perf||'tanjiro',name:KO[song.perf]||'대원',short:(KO[song.perf]||'대원').split(' ').pop()};let e=null;
   if(KC){try{e=song.perf&&KC.byId?KC.byId(song.perf):KC.byStyle(song.style);}catch(err){e=null;}}
   const nm=e&&e.name||f.name;
   return perfCache[key]={id:e&&e.id||f.id,name:nm,short:PERF_FB[song.style]?f.short:nm.split(' ').pop()};
@@ -1813,7 +1815,7 @@ function renderSelect(){
   });
   document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed',t.dataset.diff===settings.diff?'true':'false'));
   $('#sel-nofail').checked=settings.noFail;
-  $('#sel-start').textContent='출격 · '+SONGS[settings.song].title+' (곡 '+tierOf(SONGS[settings.song])[1]+' · '+DIFF[settings.diff]+')';
+  $('#sel-start').textContent='출격 · '+SONGS[settings.song].title+' ('+tierOf(SONGS[settings.song])[1]+')';
 }
 function selectSong(i,focus){settings.song=i;settings.songId=SONGS[i].id;saveSettings();renderSelect();if(focus){const b=songList.querySelector('[data-i="'+i+'"]');if(b)b.focus({preventScroll:false});}}
 function selectDiff(d){settings.diff=d;saveSettings();renderSelect();sfx('ui');}

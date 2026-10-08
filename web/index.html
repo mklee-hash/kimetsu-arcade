@@ -151,7 +151,7 @@
     margin: 0;
     font-family: var(--display);
     font-weight: 400;
-    font-size: 38px;
+    font-size: 46px;
     line-height: 1;
     color: #1a1420;
     text-wrap: balance;
@@ -713,7 +713,7 @@
     const ab = el('button', 'chip-pick'); ab.type = 'button';
     const ph = el('span', 'ph', '+'); ab.appendChild(ph);
     ab.appendChild(el('span', 'chip-name', '대원 추가'));
-    ab.addEventListener('click', () => { if (mode === 'add') closePanel(); else { openPanel('add'); $('pName').focus(); } });
+    ab.addEventListener('click', () => { if (mode === 'add') closePanel(); else { openPanel('add'); } });
     add.appendChild(ab); box.appendChild(add);
 
     const note = $('guestNote');
