@@ -69,6 +69,9 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
 .lyr div{border-left:3px solid rgba(255,143,200,.5);padding-left:8px}
 .lyr .k{font-family:var(--jp);font-weight:700;font-size:16px}
 .lyr .p{color:var(--dawn)}
+.gtabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:sticky;top:0;z-index:5;padding:6px 0;background:var(--night)}
+.gtabs button{appearance:none;border:0;cursor:pointer;min-height:46px;font-size:17px;font-weight:700;color:var(--paper-dim);background:rgba(239,230,210,.08);clip-path:var(--cut-s)}
+.gtabs button[aria-pressed="true"]{background:var(--pink);color:#2a0a1a}
 .ghead{padding:8px 2px 0}
 .ghead h3{font-size:20px;color:var(--pink)}
 .invites{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -152,8 +155,13 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
       <h3>⚔️ 노래 대결 신청이 왔어요!</h3>
       <ul class="invites" id="invites"></ul>
     </div>
+    <div class="gtabs" id="gtabs" role="group" aria-label="장르">
+      <button type="button" data-g="all" aria-pressed="true">전체</button>
+      <button type="button" data-g="kids" aria-pressed="false">민요</button>
+      <button type="button" data-g="pop" aria-pressed="false">창작곡</button>
+    </div>
     <ul class="songs" id="songs"></ul>
-    <p class="hint">창작곡은 이 게임을 위해 새로 지었고, 동요는 저작권이 끝난 세계 민요 멜로디에 귀칼 가사를 붙였어요.</p>
+    <p class="hint">창작곡은 이 게임을 위해 새로 지었고, 민요는 저작권이 끝난 세계 민요 멜로디에 귀칼 가사를 붙였어요.</p>
   </div>
 </section>
 
@@ -202,11 +210,11 @@ a.arcade-back{display:inline-flex;align-items:center;gap:6px;font-size:15px;font
 <div class="sheet" id="sheet" hidden><div class="panel" id="sheet-body"></div></div>
 <div class="count" id="count" hidden></div>
 
-<script src="kchars.js?v=20261009005451"></script>
-<script src="kprofile.js?v=20261009005451"></script>
-<script src="ksync.js?v=20261009005451"></script>
-<script src="nihongo-data.js?v=20261009005451"></script>
-<script src="karaoke-songs.js?v=20261009005451"></script>
+<script src="kchars.js?v=20261009005702"></script>
+<script src="kprofile.js?v=20261009005702"></script>
+<script src="ksync.js?v=20261009005702"></script>
+<script src="nihongo-data.js?v=20261009005702"></script>
+<script src="karaoke-songs.js?v=20261009005702"></script>
 <script>
 (() => {
 'use strict';
@@ -550,6 +558,12 @@ function sing(song, opts) {
 }
 
 /* ---------- home ---------- */
+let genre = 'all';
+document.querySelectorAll('#gtabs button').forEach(b => b.addEventListener('click', () => {
+  genre = b.dataset.g;
+  document.querySelectorAll('#gtabs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderHome();
+}));
 function renderHome() {
   const p = player(), box = $('me'); box.textContent = '';
   const en = p.guest ? 0 : energyToday(p);
@@ -558,9 +572,13 @@ function renderHome() {
   box.append(faceImg(p.avatar, 60), e);
   const ul = $('songs'); ul.textContent = '';
   const best = p.guest ? {} : recFor(p, 'best', {});
-  const groups = [['pop', '🎤 J-pop 스타일 창작곡', '이 게임을 위해 새로 지은 멜로디와 가사예요.'], ['kids', '🎵 동요 멜로디', '익숙한 세계 민요 멜로디에 귀칼 가사를 붙였어요.']];
+  const groups = [['pop', '🎤 창작곡', '이 게임을 위해 새로 지은 J-pop 스타일 멜로디와 가사예요.'], ['kids', '🎵 민요', '익숙한 세계 민요 멜로디에 귀칼 가사를 붙였어요.']];
   const order = [];
-  groups.forEach(g => { const list = SONGS.filter(x => (x.genre || 'kids') === g[0]); if (list.length) order.push(g, ...list); });
+  groups.forEach(g => {
+    if (genre !== 'all' && genre !== g[0]) return;
+    const list = SONGS.filter(x => (x.genre || 'kids') === g[0]);
+    if (list.length) { if (genre === 'all') order.push(g); order.push(...list); }
+  });
   order.forEach(s => {
     if (Array.isArray(s)) { const h = el('li', 'ghead'); h.append(el('h3', null, s[1]), el('p', 'hint', s[2])); ul.appendChild(h); return; }
     const li = el('li', 'song'), top = el('div', 'top');
