@@ -22,6 +22,7 @@
  *   KSync.syncNow()             -> Promise<{changed}>
  *   KSync.status()              -> { state:'off'|'idle'|'busy'|'error', last: ms, error }
  *   KSync.onStatus(fn)          -> fn(status) on every change
+ *   KSync.base()                -> Firestore REST documents URL (used by battle.html)
  * After remote data is applied the page receives a 'storage' event (the hub
  * re-renders), and a game page that was opened moments ago reloads once so it
  * never keeps playing on stale data.
@@ -30,7 +31,7 @@
   'use strict';
 
   // ▼ Firebase 프로젝트 ID (Firebase 콘솔 › 프로젝트 설정 › 일반 › 프로젝트 ID)
-  var CONFIG = { projectId: '' };
+  var CONFIG = { projectId: 'kimetsu-arcade' };
 
   var PFX = 'kimetsu-arcade:', META = 'kimetsu-sync:meta', CODEK = 'kimetsu-sync:code', LASTK = 'kimetsu-sync:last';
   var LOCAL_ONLY = { 'kimetsu-arcade:profile': 1 };
@@ -212,6 +213,7 @@
   else setTimeout(auto, 200);
 
   global.KSync = {
+    base: function () { return 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(CONFIG.projectId) + '/databases/(default)/documents/'; },
     configured: configured, code: code, create: create, join: join, leave: leave, syncNow: syncNow,
     status: status, onStatus: function (fn) { if (typeof fn === 'function') listeners.push(fn); },
     _test: { merge: merge, stamp: stamp, snapshot: snapshot, normCode: normCode, CONFIG: CONFIG }

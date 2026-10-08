@@ -561,6 +561,17 @@
         <span class="play">수련하기</span>
       </a>
     </li>
+    <li>
+      <a class="game" href="battle.html" data-c="flame">
+        <canvas class="art" data-art="battle" aria-hidden="true"></canvas>
+        <span class="genre">실시간 대결</span>
+        <h2>말의 호흡 배틀</h2>
+        <p>같은 동기화 코드를 쓰는 가족·친구와 각자 폰으로 일본어 퀴즈 1:1 대결! 빨리 맞힐수록 상대를 세게 벱니다.</p>
+        <div class="meta"><span>인원 <b>2명</b></span><span>문제 <b>10개</b></span><span>필요 <b>기록 동기화</b></span></div>
+        <span class="seal" aria-hidden="true">戦</span>
+        <span class="play">대결하기</span>
+      </a>
+    </li>
   </ul>
 
   <section class="ranks" aria-labelledby="ranks-title">
@@ -1333,7 +1344,23 @@
     bubble(W * 0.62, H * 0.52, bw * 0.9, bh, 1, 'かわいい！', '카와이이 · 귀여워');
   }
 
-  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole, nihongo: drawNihongo };
+  function drawBattle(g, W, H) {
+    sky(g, W, H, ['#2a0c1e', '#4a1420', '#7a2a1a']);
+    stars(g, W, H, 91, Math.round(W * H / 1600), 0.3);
+    const s = Math.min(H * 0.7, W * 0.36), by = H - s * 0.32;
+    if (window.KChars) {
+      try { KChars.drawBust(g, 'tanjiro', W * 0.22, by, s, { expr: 'fierce' }); } catch (e) { /* */ }
+      try { KChars.drawBust(g, 'zenitsu', W * 0.78, by, s, { expr: 'fierce', flip: true }); } catch (e) { /* */ }
+    }
+    bladeTrail(g, W * 0.38, H * 0.15, W * 0.62, H * 0.75, -H * 0.05, Math.max(3, H * 0.03), ['rgba(255,240,200,.9)', '#ffffff', 'rgba(255,120,80,.9)']);
+    g.save(); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = Math.round(H * 0.32) + 'px "Nanum Brush Script",cursive'; g.lineWidth = 6; g.strokeStyle = '#120a10'; g.strokeText('VS', W / 2, H * 0.5);
+    g.fillStyle = '#f2b24a'; g.fillText('VS', W / 2, H * 0.5);
+    for (const [x, w] of [[0.06, 0.32], [0.62, 0.32]]) { g.fillStyle = '#120a10'; g.fillRect(W * x, H * 0.08, W * w, H * 0.06); g.fillStyle = x < 0.5 ? '#5ed27a' : '#d8343f'; g.fillRect(W * x + 2, H * 0.08 + 2, (W * w - 4) * (x < 0.5 ? 0.8 : 0.35), H * 0.06 - 4); }
+    g.restore();
+  }
+
+  const SCENES = { slash: drawSlash, rhythm: drawRhythm, runner: drawRunner, mole: drawMole, nihongo: drawNihongo, battle: drawBattle };
   function render(cv) {
     const fn = SCENES[cv.dataset.art]; if (!fn) return;
     const W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
