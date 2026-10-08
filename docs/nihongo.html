@@ -302,6 +302,13 @@ a.arcade-back:hover{background:#ffc766}
     <div class="topbar"><button class="btn small backbtn" data-go="home" type="button">← 처음으로</button><span class="grow"></span><span class="hint">누구와 이야기할까요?</span></div>
     <div class="partners" id="partners" role="group" aria-label="대화 상대"></div>
     <p class="hint" id="partners-more"></p>
+    <button class="btn small" id="vt-open" type="button" style="align-self:flex-start">🎚 목소리 맞추기</button>
+    <div class="panel" id="vt" hidden>
+      <h3>🎚 목소리 맞추기 <span class="hint">(이 폰에만 저장돼요)</span></h3>
+      <p class="hint">🔊를 눌러 들어 보고, 낮게·높게로 마음에 들게 맞춰요.</p>
+      <div id="vt-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="btn-row"><button class="btn small" id="vt-reset" type="button">처음 값으로</button><button class="btn small" id="vt-close" type="button">닫기</button></div>
+    </div>
     <div class="log" id="log" aria-live="polite"></div>
     <div class="chatfoot">
       <div class="hint" id="chip-hint">이렇게 말해 볼까요? (눌러서 보내기)</div>
@@ -322,10 +329,10 @@ a.arcade-back:hover{background:#ffc766}
 
 <div id="toasts" aria-live="polite"></div>
 
-<script src="kchars.js?v=20261009015632"></script>
-<script src="kprofile.js?v=20261009015632"></script>
-<script src="ksync.js?v=20261009015632"></script>
-<script src="nihongo-data.js?v=20261009015632"></script>
+<script src="kchars.js?v=20261009015957"></script>
+<script src="kprofile.js?v=20261009015957"></script>
+<script src="ksync.js?v=20261009015957"></script>
+<script src="nihongo-data.js?v=20261009015957"></script>
 <script>
 (() => {
 'use strict';
@@ -417,7 +424,10 @@ function pickVoice() {
 }
 // who speaks: g = m/f, p = pitch (1 = the voice's own), r = speed, v = which voice when a phone has several
 const CAST = {
-  tanjiro: { g: 'm', p: 0.92, r: 0.93, v: 0, boy: 0.86 },   // boy: pitch used when there is no male voice (a clear boy's voice) zenitsu: { g: 'm', p: 1.08, r: 1.15, v: 1 }, inosuke: { g: 'm', p: 0.8, r: 1.12, v: 2 },
+  // boy: pitch used for a young boy when the phone has no male voice
+  tanjiro: { g: 'm', p: 0.92, r: 0.95, v: 0, boy: 0.93 },
+  zenitsu: { g: 'm', p: 0.95, r: 1.15, v: 1 },
+  inosuke: { g: 'm', p: 1.05, r: 1.12, v: 2 },
   rengoku: { g: 'm', p: 0.78, r: 1.02, v: 1 }, giyu: { g: 'm', p: 0.78, r: 0.8, v: 0 }, tengen: { g: 'm', p: 0.82, r: 1.0, v: 2 },
   muichiro: { g: 'm', p: 0.98, r: 0.78, v: 0 }, gyomei: { g: 'm', p: 0.68, r: 0.72, v: 1 }, obanai: { g: 'm', p: 0.86, r: 0.9, v: 2 },
   sanemi: { g: 'm', p: 0.76, r: 1.1, v: 0 },
@@ -440,11 +450,15 @@ function say(text, slow, who) {
       else if (c.g === 'm') { if (jaVoice) u.voice = jaVoice; pitch = c.boy || c.p * 0.82; }     // no male voice on this phone: only a little deeper
       else { const fv = femaleVoices.length ? femaleVoices[c.v % femaleVoices.length] : jaVoice; if (fv) u.voice = fv; pitch = c.p; }
     } else if (jaVoice) u.voice = jaVoice;
+    pitch += (VTUNE[who] || 0);
     u.pitch = Math.min(2, Math.max(0.4, pitch));
     u.rate = slow ? rate * 0.68 : rate;
     speechSynthesis.speak(u);
   } catch (e) { /* no voice */ }
 }
+let VTUNE = {};
+try { VTUNE = JSON.parse(localStorage.getItem('kimetsu-nihongo:voices') || '{}') || {}; } catch (e) { VTUNE = {}; }
+function saveTune() { try { localStorage.setItem('kimetsu-nihongo:voices', JSON.stringify(VTUNE)); } catch (e) { /* */ } }
 // lines are read by the character who says them; single words by the narrator
 const sayIt = (it, slow) => say(it.jp, slow, it.type === 'l' ? it.sp : null);
 
@@ -1167,6 +1181,26 @@ document.addEventListener('pointerdown', () => {
   if (primed) return; primed = true; ac();
   try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'ja-JP'; speechSynthesis.speak(u); } catch (e) { /* */ }
 }, { capture: true });
+
+/* ---------- voice tuning panel ---------- */
+const VT_SAMPLE = { me: R('こんにちは！', '', ''), tanjiro: R('俺は/竈門炭治郎/だ！', '', ''), nezuko: R('むー！/おはよう！', '', '') };
+function renderTune() {
+  const list = $('vt-list'); list.textContent = '';
+  ['me'].concat(metChars()).forEach(id => {
+    const row = el('div'); row.style.cssText = 'display:flex;align-items:center;gap:8px';
+    if (id === 'me') row.appendChild(el('b', null, '나')); else row.appendChild(faceImg(id, 36));
+    const nm = el('span', null, id === 'me' ? '(단어 카드)' : NAME[id]); nm.style.flex = '1'; row.appendChild(nm);
+    const val = el('span', 'hint', ''); const show = () => { const v = VTUNE[id] || 0; val.textContent = v === 0 ? '기본' : (v > 0 ? '+' : '') + Math.round(v * 100); };
+    const sample = () => { const P = PERSONA[id]; const t = VT_SAMPLE[id] || (P && P.self) || R('こんにちは！', '', ''); say(t.jp, false, id); };
+    const mk = (txt, fn) => { const b = el('button', 'btn small', txt); b.type = 'button'; b.addEventListener('click', fn); return b; };
+    row.append(mk('🔊', sample), mk('낮게', () => { VTUNE[id] = Math.max(-0.6, (VTUNE[id] || 0) - 0.1); saveTune(); show(); sample(); }),
+      mk('높게', () => { VTUNE[id] = Math.min(0.6, (VTUNE[id] || 0) + 0.1); saveTune(); show(); sample(); }), val);
+    show(); list.appendChild(row);
+  });
+}
+$('vt-open').addEventListener('click', () => { const v = $('vt'); v.hidden = !v.hidden; if (!v.hidden) renderTune(); });
+$('vt-close').addEventListener('click', () => { $('vt').hidden = true; });
+$('vt-reset').addEventListener('click', () => { VTUNE = {}; saveTune(); renderTune(); });
 
 /* ---------- phone back button: one screen back instead of leaving ---------- */
 (function () {
